@@ -1,0 +1,59 @@
+name: Build GTK4 Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential libgtk-4-dev meson ninja-build
+
+      - name: Build application
+        run: |
+          meson setup builddir
+          meson compile -C builddir
+
+      - name: Run tests
+        run: |
+          meson test -C builddir
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install GTK4
+        run: |
+          choco install gtk4
+
+      - name: Install Visual Studio Build Tools
+        uses: microsoft/setup-msbuild@v1
+        with:
+          vs-version: 'latest'
+
+      - name: Install Meson and Ninja
+        run: |
+          choco install python
+          python -m pip install meson ninja
+
+      - name: Build application
+        run: |
+          meson setup builddir --backend=vs
+          meson compile -C builddir
+
+      - name: Run tests
+        run: |
+          meson test -C builddir

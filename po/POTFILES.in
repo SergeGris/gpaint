@@ -1,0 +1,8 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/org.gnu.paint.desktop.in
+data/org.gnu.paint.metainfo.xml.in
+data/org.gnu.paint.gschema.xml
+src/main.c
+src/gpaint-window.c
+src/gpaint-window.ui

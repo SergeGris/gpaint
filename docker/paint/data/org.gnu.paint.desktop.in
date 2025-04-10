@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=gpaint
+Exec=gpaint
+Icon=org.gnu.paint
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=GTK;
+StartupNotify=true
+DBusActivatable=true

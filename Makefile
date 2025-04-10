@@ -1,0 +1,266 @@
+
+#WARN_FLAGS=				\
+	-Wall				\
+	-Wextra				\
+	-Wpedantic			\
+	-Warith-conversion		\
+	-Wdate-time			\
+	-Wdisabled-optimization		\
+	-Wdouble-promotion		\
+	-Wduplicated-cond		\
+	-Wformat-signedness		\
+	-Winit-self			\
+	-Winvalid-pch			\
+	-Wlogical-op			\
+	-Wmissing-declarations		\
+	-Wmissing-include-dirs		\
+	-Wmissing-prototypes		\
+	-Wnested-externs		\
+	-Wnull-dereference		\
+	-Wold-style-definition		\
+	-Wopenmp-simd			\
+	-Wpacked			\
+	-Wpointer-arith			\
+	-Wstrict-prototypes		\
+	-Wsuggest-final-methods		\
+	-Wsuggest-final-types		\
+	-Wtrampolines			\
+	-Wuninitialized			\
+	-Wunknown-pragmas		\
+	-Wvariadic-macros		\
+	-Wvector-operation-performance	\
+	-Wwrite-strings			\
+	-Warray-bounds=1		\
+	-Wattribute-alias=2		\
+	-Wimplicit-fallthrough=2	\
+	-Wshift-overflow=2		\
+	-Wvla-larger-than=4031		\
+	-Wredundant-decls		\
+	-Wshadow			\
+	-Wenum-conversion		\
+	-Wsign-conversion		\
+	-Wconversion			\
+	-Wstrict-prototypes		\
+	-Wmissing-prototypes		\
+	-Wwrite-strings			\
+	-Wabi=2				\
+	-Wmissing-attributes		\
+	-Wmissing-braces		\
+	-Wunused-const-variable=2	\
+	-Wuninitialized			\
+	-Wstrict-overflow=5		\
+	-Wstring-compare		\
+	-Wsuggest-attribute=const	\
+	-Wsuggest-attribute=noreturn	\
+	-Wmissing-noreturn		\
+	-Wsuggest-attribute=format	\
+	-Wsuggest-attribute=cold	\
+	-Wmissing-format-attribute	\
+	-Wsuggest-attribute=malloc	\
+	-Wsuggest-attribute=pure	\
+	-Wno-unused-parameter		\
+	-Wcast-qual			\
+	-Wno-format -fdiagnostics-color=always
+#	-Wformat=2			\
+	-Wformat-truncation=2
+
+#WARN=					\
+-Wbool-compare				\
+-Wbool-operation			\
+-Wbuiltin-declaration-mismatch		\
+-Wbuiltin-macro-redefined		\
+-Wc11-c2x-compat			\
+-Wcast-align				\
+-Wcast-align=strict			\
+-Wcast-function-type			\
+-Wcast-qual				\
+-Wchar-subscripts			\
+-Wclobbered				\
+-Wcomment				\
+-Wconversion				\
+-Wcoverage-mismatch			\
+-Wcpp					\
+-Wdangling-else				\
+-Wdate-time				\
+-Wdeprecated				\
+-Wdeprecated-declarations		\
+-Wdesignated-init			\
+-Wdisabled-optimization			\
+-Wdiscarded-array-qualifiers		\
+-Wdiscarded-qualifiers			\
+-Wdiv-by-zero				\
+-Wdouble-promotion			\
+-Wduplicated-branches			\
+-Wduplicated-cond			\
+-Wempty-body				\
+-Wendif-labels				\
+-Wenum-compare				\
+-Wenum-conversion			\
+-Wexpansion-to-defined			\
+-Wfatal-errors				\
+-Wfloat-conversion			\
+-Wfloat-equal				\
+-Wformat				\
+-Wformat-contains-nul			\
+-Wformat-extra-args			\
+-Wformat-nonliteral			\
+-Wformat-overflow=2			\
+-Wformat-security			\
+-Wformat-signedness			\
+-Wformat-truncation=2			\
+-Wformat-y2k				\
+-Wframe-address				\
+-Wno-frame-larger-than			\
+-Wfree-nonheap-object			\
+-Wif-not-aligned			\
+-Wignored-attributes			\
+-Wignored-qualifiers			\
+-Wincompatible-pointer-types		\
+-Wimplicit				\
+-Wimplicit-fallthrough			\
+-Wimplicit-fallthrough=2		\
+-Wimplicit-function-declaration		\
+-Wimplicit-int				\
+-Winfinite-recursion			\
+-Winit-self				\
+-Wno-inline				\
+-Wint-conversion			\
+-Wint-in-bool-context			\
+-Wint-to-pointer-cast			\
+-Winvalid-memory-model			\
+-Winvalid-pch				\
+-Wjump-misses-init			\
+-Wno-larger-than			\
+-Wlogical-not-parentheses		\
+-Wlogical-op				\
+-Wlong-long				\
+-Wlto-type-mismatch			\
+-Wmain					\
+-Wmaybe-uninitialized			\
+-Wmemset-elt-size			\
+-Wmemset-transposed-args		\
+-Wmisleading-indentation		\
+-Wmissing-attributes			\
+-Wmissing-braces			\
+-Wmissing-field-initializers		\
+-Wmissing-format-attribute		\
+-Wmissing-include-dirs			\
+-Wmissing-noreturn			\
+-Wmissing-profile			\
+-Wmultichar				\
+-Wmultistatement-macros			\
+-Wnonnull				\
+-Wnonnull-compare			\
+-Wnull-dereference			\
+-Wodr					\
+-Wopenacc-parallelism			\
+-Wopenmp-simd				\
+-Woverflow				\
+-Woverlength-strings			\
+-Woverride-init-side-effects		\
+-Wpacked				\
+-Wpacked-bitfield-compat		\
+-Wpacked-not-aligned			\
+-Wno-padded				\
+-Wparentheses				\
+-Wpointer-arith				\
+-Wpointer-compare			\
+-Wpointer-to-int-cast			\
+-Wpragmas				\
+-Wprio-ctor-dtor			\
+-Wno-redundant-decls			\
+-Wrestrict				\
+-Wreturn-local-addr			\
+-Wreturn-type				\
+-Wscalar-storage-order			\
+-Wsequence-point			\
+-Wshadow				\
+-Wshadow=global				\
+-Wshadow=local				\
+-Wshadow=compatible-local		\
+-Wshift-count-negative			\
+-Wshift-count-overflow			\
+-Wshift-negative-value			\
+-Wshift-overflow			\
+-Wshift-overflow=2			\
+-Wsign-compare				\
+-Wsign-conversion			\
+-Wsizeof-array-argument			\
+-Wsizeof-array-div			\
+-Wsizeof-pointer-div			\
+-Wsizeof-pointer-memaccess		\
+-Wstack-protector			\
+-Wno-stack-usage			\
+-Wstrict-aliasing			\
+-Wstrict-aliasing=3			\
+-Wstrict-overflow			\
+-Wstrict-overflow=2			\
+-Wstring-compare			\
+-Wstringop-overflow			\
+-Wstringop-overread			\
+-Wstringop-truncation			\
+-Wswitch				\
+-Wswitch-bool				\
+-Wswitch-default			\
+-Wswitch-enum				\
+-Wswitch-outside-range			\
+-Wswitch-unreachable			\
+-Wsync-nand				\
+-Wno-system-headers			\
+-Wtautological-compare			\
+-Wtrampolines				\
+-Wtrigraphs				\
+-Wtrivial-auto-var-init			\
+-Wtsan					\
+-Wtype-limits				\
+-Wundef					\
+-Wuninitialized				\
+-Wunknown-pragmas			\
+-Wno-unsuffixed-float-constants		\
+-Wunused				\
+-Wunused-but-set-parameter		\
+-Wunused-but-set-variable		\
+-Wunused-const-variable			\
+-Wunused-const-variable=2		\
+-Wunused-function			\
+-Wunused-label				\
+-Wunused-local-typedefs			\
+-Wno-unused-macros			\
+-Wno-unused-parameter			\
+-Wunused-result				\
+-Wunused-value				\
+-Wunused-variable			\
+-Wvarargs				\
+-Wvariadic-macros			\
+-Wvector-operation-performance		\
+-Wvla					\
+-Wvolatile-register-var			\
+-Wwrite-strings				\
+-Wzero-length-bounds			\
+-Wconversion
+
+SANITIZE=-fsanitize=undefined \
+	-fsanitize=return \
+	-fsanitize=alignment \
+	-fsanitize=nonnull-attribute \
+	-fsanitize=returns-nonnull-attribute \
+	-fsanitize=bool \
+	-fsanitize=null \
+	-fsanitize=shift \
+	-fsanitize=bounds \
+	-fsanitize=signed-integer-overflow \
+	-fsanitize=enum \
+	-fsanitize=unreachable \
+	-fsanitize=float-cast-overflow \
+	-fsanitize=float-divide-by-zero \
+	-fsanitize=object-size \
+	-fsanitize=vla-bound \
+	-fsanitize=integer-divide-by-zero \
+	-fsanitize=pointer-overflow \
+	-fsanitize=vptr \
+	-fsanitize=address
+
+all:
+	$(CC) -Wall -Wextra -lm -ggdb3 -Og -g3 -Isrc src/main.c src/color-swap-button.c src/tools/*.c -o paint `pkg-config --cflags --libs gtk4 libadwaita-1` $(WARN) $(WARN_FLAGS) $(SANITIZE) -Ibuild #-fanalyzer -Ibuild -pg
+
+#$(WARN) $(WARN_FLAGS) #-fanalyzer #$(SANITIZE)

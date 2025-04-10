@@ -1,0 +1,1 @@
+option('with_png', type: 'boolean', value: true, description: 'Enable the PNG support')
