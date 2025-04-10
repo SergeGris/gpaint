@@ -1130,7 +1130,7 @@ on_click_released (GtkGestureDrag *gesture, gdouble x, gdouble y, gpointer user_
   /// TODO
   //gtk_widget_queue_draw (gpaint_layers_widget_get_selected_button (GPAINT_LAYERS_WIDGET (state->layers)));
   // TODO gpaint_preview_widget_queue_redraw (GPAINT_LAYERS_WIDGET (state->layers));
-  gpaint_layers_widget_queue_redraw (state->layers);
+  // TODO gpaint_layers_widget_queue_redraw (state->layers);
   ///
 
   gtk_widget_queue_draw (state->drawing_area);
@@ -1985,18 +1985,18 @@ activate (GtkApplication *app, AppState *state)
   gtk_frame_set_child (GTK_FRAME (vframe), toolbar_grid);
 
   GtkWidget *content_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-  state->layers = gpaint_layers_widget_new();
+  /* state->layers = gpaint_layers_widget_new(); */
   // TODO gpaint_layers_widget_get_selected_surface
-  g_signal_connect (state->layers, "surface-selected", G_CALLBACK (on_surface_selected), state);
+  // TODO g_signal_connect (state->layers, "surface-selected", G_CALLBACK (on_surface_selected), state);
   GtkWidget *lrs = gtk_frame_new (NULL); // TODO RENAME
   GtkWidget *scr = gtk_scrolled_window_new ();
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scr), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scr), state->layers);
+  /* gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scr), state->layers); */
   gtk_frame_set_child (GTK_FRAME (lrs), scr);
 
   gtk_box_append (GTK_BOX (content_hbox), vframe);
   gtk_box_append (GTK_BOX (content_hbox), scrolled);
-  gtk_box_append (GTK_BOX (content_hbox), lrs); // TODO
+  /* gtk_box_append (GTK_BOX (content_hbox), lrs); // TODO */
 
   {
     GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);

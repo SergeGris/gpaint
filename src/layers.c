@@ -115,25 +115,55 @@ static guint gpaint_layers_widget_signals[N_SIGNALS] = { 0 };
 
 G_DEFINE_TYPE(GPaintLayersWidget, gpaint_layers_widget, GTK_TYPE_BOX);
 
-static void on_layer_toggled(GtkToggleButton *button, gpointer user_data) {
-  GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET(user_data);
+static void
+on_layer_toggled (GtkToggleButton *button, gpointer user_data)
+{
+  GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET (user_data);
 
-  if (button == self->selected_toggle)
-    return;
+  if (gtk_toggle_button_get_active (button))
+    {
+      self->selected_toggle = GTK_WIDGET (button);
+      cairo_surface_t *surface = g_object_get_data (G_OBJECT (button), "surface");
 
-  if (gtk_toggle_button_get_active(button)) {
-    self->selected_toggle = GTK_WIDGET(button);
-    cairo_surface_t *surface = g_object_get_data(G_OBJECT(button), "surface");
-    g_signal_emit(self, gpaint_layers_widget_signals[SURFACE_SELECTED], 0, surface);
-  }
+      for (GList * l = self->layer_rows; l != NULL; l = l->next)
+	{
+	  LayerRow *row = l->data;
 
-  for (GList *l = self->layer_rows; l != NULL; l = l->next) {
-    LayerRow *row = l->data;
-    // TODO. On press on selected it unselects it...
-    if (gtk_toggle_button_get_active (row->toggle) && self->selected_toggle != GTK_WIDGET (button))
-      gtk_toggle_button_set_active (row->toggle, FALSE);
-  }
+	  if (row->toggle != button)
+	    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (row->toggle), FALSE);
+	}
+
+      g_signal_emit (self, gpaint_layers_widget_signals[SURFACE_SELECTED], 0, surface);
+    }
+  else
+    {
+      if (self->selected_toggle == GTK_WIDGET (button))
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
+    }
 }
+
+/* static void on_layer_toggled(GtkToggleButton *button, gpointer user_data) { */
+/*   GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET(user_data); */
+
+/*   if (gtk_toggle_button_get_active(button)) { */
+/*     self->selected_toggle = GTK_WIDGET(button); */
+/*     cairo_surface_t *surface = g_object_get_data(G_OBJECT(button), "surface"); */
+/*     g_signal_emit(self, gpaint_layers_widget_signals[SURFACE_SELECTED], 0, surface); */
+/*   } */
+
+/*   for (GList *l = self->layer_rows; l != NULL; l = l->next) { */
+/*     LayerRow *row = l->data; */
+
+/*     gtk_toggle_button_set_active (row->toggle, FALSE); */
+
+/*     // TODO. On press on selected it unselects it... */
+/*     /\* if (gtk_toggle_button_get_active (row->toggle) && self->selected_toggle != GTK_WIDGET (button)) *\/ */
+/*     /\*   gtk_toggle_button_set_active (row->toggle, FALSE); *\/ */
+/*   } */
+
+/*   if (self->selected_toggle) */
+/*     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (self->selected_toggle), TRUE); */
+/* } */
 
 GtkWidget *gpaint_layers_widget_get_selected_toggle(GPaintLayersWidget *widget) {
   return widget->selected_toggle;
@@ -173,6 +203,7 @@ static void on_delete_button_clicked(GtkButton *button, gpointer user_data) {
 
 static LayerRow *create_layer_row(GPaintLayersWidget *widget, cairo_surface_t *surface) {
   LayerRow *lrow = g_malloc(sizeof(LayerRow));
+
   lrow->row = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 
   lrow->toggle = GTK_TOGGLE_BUTTON(gtk_toggle_button_new());
@@ -188,9 +219,36 @@ static LayerRow *create_layer_row(GPaintLayersWidget *widget, cairo_surface_t *s
   g_signal_connect(lrow->delete_button, "clicked", G_CALLBACK(on_delete_button_clicked), widget);
 
   lrow->special_toggle = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label("★"));
-  gtk_box_append(GTK_BOX(lrow->row), GTK_WIDGET (lrow->toggle));
-  gtk_box_append(GTK_BOX(lrow->row), lrow->delete_button);
-  gtk_box_append(GTK_BOX(lrow->row), GTK_WIDGET(lrow->special_toggle));
+
+  // TODO
+  GtkCssProvider *provider = gtk_css_provider_new ();
+  gtk_css_provider_load_from_data (provider,
+                                   ".delete-button { background-color: #d9534f; color: white; }",
+                                   -1);
+  gtk_style_context_add_provider_for_display (gdk_display_get_default (),
+                                              GTK_STYLE_PROVIDER (provider),
+                                              GTK_STYLE_PROVIDER_PRIORITY_USER);
+  g_object_unref (provider);
+
+  GtkStyleContext *context = gtk_widget_get_style_context (lrow->delete_button);
+  gtk_style_context_add_class (context, "delete-button");
+  // TODO
+
+  gtk_widget_set_size_request(lrow->delete_button, 16, 16);
+
+  gtk_box_append (GTK_BOX (lrow->row), GTK_WIDGET (lrow->toggle));
+
+  GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
+
+  gtk_box_append (GTK_BOX (hbox), lrow->delete_button);
+  gtk_box_append (GTK_BOX (hbox), GTK_WIDGET(lrow->special_toggle));
+  gtk_widget_set_halign (hbox, GTK_ALIGN_CENTER);
+
+  gtk_box_append (GTK_BOX (lrow->row), hbox);
+
+  /* gtk_box_append(GTK_BOX(lrow->row), GTK_WIDGET (lrow->toggle)); */
+  /* gtk_box_append(GTK_BOX(lrow->row), lrow->delete_button); */
+  /* gtk_box_append(GTK_BOX(lrow->row), GTK_WIDGET(lrow->special_toggle)); */
   return lrow;
 }
 
@@ -280,6 +338,7 @@ static void gpaint_layers_widget_init(GPaintLayersWidget *self) {
   cairo_paint(cr);
   cairo_destroy(cr);
   gpaint_layers_widget_add_layer(self, surface);
+  g_signal_emit (self, gpaint_layers_widget_signals[SURFACE_SELECTED], 0, surface);
   cairo_surface_destroy(surface);
 }
 
@@ -287,8 +346,9 @@ static void gpaint_layers_widget_class_init(GPaintLayersWidgetClass *klass) {
   GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
   gobject_class->dispose = gpaint_layers_widget_dispose;
   gpaint_layers_widget_signals[SURFACE_SELECTED] = g_signal_new("surface-selected",
-      G_TYPE_FROM_CLASS(klass),
-      G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL, G_TYPE_NONE, 1, G_TYPE_POINTER);
+                                                                G_TYPE_FROM_CLASS(klass),
+                                                                G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+                                                                NULL, G_TYPE_NONE, 1, G_TYPE_POINTER);
 }
 
 GtkWidget *gpaint_layers_widget_new(void) {
