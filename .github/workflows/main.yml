@@ -30,8 +30,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Install gvsbuild dependencies
+        env:
+          GIT_TERMINAL_PROMPT: "0"
         run: |
-          git -c credential.helper= clone https://gitlab.gnome.org/GNOME/gvsbuild.git
+          git clone --depth=1 https://gitlab.gnome.org/GNOME/gvsbuild.git
           cd gvsbuild
           python gvsbuild.py --install gtk4
           python gvsbuild.py --install libadwaita
