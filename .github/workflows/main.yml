@@ -3,10 +3,10 @@ name: Build GTK4 Application
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   build-linux:
