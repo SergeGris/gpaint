@@ -34,9 +34,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install GTK4
+      - name: Install gvsbuild
         run: |
-          choco install gtk4
+          git clone https://gitlab.gnome.org/GNOME/gvsbuild.git
+          cd gvsbuild
+          python3 gvsbuild.py --install gtk4
+          python3 gvsbuild.py --install libadwaita
 
       - name: Install Visual Studio Build Tools
         uses: microsoft/setup-msbuild@v1
