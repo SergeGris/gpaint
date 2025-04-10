@@ -7,55 +7,71 @@ on:
     branches: [ master ]
 
 jobs:
-  build-linux:
+  build_linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install dependencies
+      - name: Install Linux dependencies
         run: |
-          sudo apt update
-          sudo apt install -y build-essential libgtk-4-dev libadwaita-1-dev desktop-file-utils pkg-config gettext meson libpng-dev
-      - name: Build application
-        run: |
-          meson setup builddir
-          meson compile -C builddir
-      - name: Run tests
-        run: |
-          meson test -C builddir
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libadwaita-1-dev \
+            desktop-file-utils \
+            pkg-config \
+            gettext \
+            meson \
+            libpng-dev
 
-  build-windows:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure build
+        run: meson setup builddir
+
+      - name: Compile
+        run: meson compile -C builddir
+
+      - name: Run tests
+        run: meson test -C builddir
+
+  build_windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout application code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Install Visual Studio Build Tools
-        uses: microsoft/setup-msbuild@v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          vs-version: 'latest'
+          python-version: '3.x'
 
-      - name: Install Chocolatey packages and Python dependencies
+      - name: Install gvsbuild
         run: |
-          choco install python --yes
-          python -m pip install --upgrade pip
-          python -m pip install meson ninja
+          git clone https://github.com/wingtk/gvsbuild
+          cd gvsbuild
+          pip install .
 
-      - name: Clone gvsbuild repository
+      - name: Build GTK4 and dependencies
         run: |
-          git clone --depth=1 https://github.com/wingtk/gvsbuild.git
+          python -m gvsbuild build \
+            --enable-gi \
+            --py \
+            gtk4 \
+            libadwaita \
+            libpng
 
-      - name: Build GTK4 dependencies using gvsbuild
-        working-directory: gvsbuild
+      - name: Set up environment variables
+        shell: cmd
         run: |
-          python gvsbuild.py --install gtk4
-          python gvsbuild.py --install libadwaita
+          echo GTK_INSTALL_PATH=C:\gtk >> %GITHUB_ENV%
+          echo PKG_CONFIG_PATH=C:\gtk\lib\pkgconfig >> %GITHUB_ENV%
+          echo PATH=C:\gtk\bin;%PATH% >> %GITHUB_ENV%
 
-      - name: Build Application
-        run: |
-          meson setup builddir --backend=vs
-          meson compile -C builddir
+      - name: Configure build
+        run: meson setup builddir
 
-      - name: Run Tests
-        run: |
-          meson test -C builddir
+      - name: Compile
+        run: meson compile -C builddir
+
+      - name: Run tests
+        run: meson test -C builddir
