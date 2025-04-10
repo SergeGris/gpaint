@@ -53,12 +53,7 @@ jobs:
 
       - name: Build GTK4 and dependencies
         run: |
-          python -m gvsbuild build \
-            --enable-gi \
-            --py \
-            gtk4 \
-            libadwaita \
-            libpng
+          python -m gvsbuild build --enable-gi --py gtk4 libadwaita libpng
 
       - name: Set up environment variables
         shell: cmd
