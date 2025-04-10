@@ -31,10 +31,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Install gvsbuild dependencies
         run: |
-          git clone https://gitlab.gnome.org/GNOME/gvsbuild.git
+          git -c credential.helper= clone https://gitlab.gnome.org/GNOME/gvsbuild.git
           cd gvsbuild
-          python3 gvsbuild.py --install gtk4
-          python3 gvsbuild.py --install libadwaita
+          python gvsbuild.py --install gtk4
+          python gvsbuild.py --install libadwaita
       - name: Install Visual Studio Build Tools
         uses: microsoft/setup-msbuild@v1
         with:
