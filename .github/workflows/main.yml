@@ -55,7 +55,7 @@ jobs:
 
       - name: Build GTK4 and dependencies
         run: |
-          gvsbuild build --enable-gi gtk4 libadwaita libpng
+          gvsbuild build --enable-gi gtk4 libadwaita libpng gettext
 
       - name: Set up environment variables
         shell: cmd
