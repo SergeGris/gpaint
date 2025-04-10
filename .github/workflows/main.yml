@@ -27,28 +27,35 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
+      - name: Checkout application code
         uses: actions/checkout@v3
-      - name: Install gvsbuild dependencies
-        env:
-          GIT_TERMINAL_PROMPT: "0"
-        run: |
-          git clone --depth=1 https://github.com/wingtk/gvsbuild
-          cd gvsbuild
-          python gvsbuild.py --install gtk4
-          python gvsbuild.py --install libadwaita
+
       - name: Install Visual Studio Build Tools
         uses: microsoft/setup-msbuild@v1
         with:
           vs-version: 'latest'
-      - name: Install Meson and Ninja
+
+      - name: Install Chocolatey packages and Python dependencies
         run: |
           choco install python --yes
+          python -m pip install --upgrade pip
           python -m pip install meson ninja
-      - name: Build application
+
+      - name: Clone gvsbuild repository
+        run: |
+          git clone --depth=1 https://github.com/wingtk/gvsbuild.git
+
+      - name: Build GTK4 dependencies using gvsbuild
+        working-directory: gvsbuild
+        run: |
+          python gvsbuild.py --install gtk4
+          python gvsbuild.py --install libadwaita
+
+      - name: Build Application
         run: |
           meson setup builddir --backend=vs
           meson compile -C builddir
-      - name: Run tests
+
+      - name: Run Tests
         run: |
           meson test -C builddir
