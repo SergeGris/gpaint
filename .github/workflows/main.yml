@@ -18,8 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential libgtk-4-dev meson ninja-build
-
+          sudo apt install -y build-essential libgtk-4-dev libadwaita-1-dev desktop-file-utils pkg-config gettext meson
       - name: Build application
         run: |
           meson setup builddir
