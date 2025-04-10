@@ -33,7 +33,7 @@ jobs:
         env:
           GIT_TERMINAL_PROMPT: "0"
         run: |
-          git clone --depth=1 https://gitlab.gnome.org/GNOME/gvsbuild.git
+          git clone --depth=1 https://github.com/wingtk/gvsbuild
           cd gvsbuild
           python gvsbuild.py --install gtk4
           python gvsbuild.py --install libadwaita
