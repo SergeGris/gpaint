@@ -2,28 +2,24 @@ name: Build GTK4 Application
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential libgtk-4-dev libadwaita-1-dev desktop-file-utils pkg-config gettext meson
+          sudo apt install -y build-essential libgtk-4-dev libadwaita-1-dev desktop-file-utils pkg-config gettext meson libpng-dev
       - name: Build application
         run: |
           meson setup builddir
           meson compile -C builddir
-
       - name: Run tests
         run: |
           meson test -C builddir
@@ -32,30 +28,25 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install gvsbuild
+        uses: actions/checkout@v3
+      - name: Install gvsbuild dependencies
         run: |
           git clone https://gitlab.gnome.org/GNOME/gvsbuild.git
           cd gvsbuild
           python3 gvsbuild.py --install gtk4
           python3 gvsbuild.py --install libadwaita
-
       - name: Install Visual Studio Build Tools
         uses: microsoft/setup-msbuild@v1
         with:
           vs-version: 'latest'
-
       - name: Install Meson and Ninja
         run: |
-          choco install python
+          choco install python --yes
           python -m pip install meson ninja
-
       - name: Build application
         run: |
           meson setup builddir --backend=vs
           meson compile -C builddir
-
       - name: Run tests
         run: |
           meson test -C builddir
