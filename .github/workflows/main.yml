@@ -45,6 +45,22 @@ jobs:
         with:
           python-version: '3.11'  # Explicit version recommended
 
+      - name: Download Gettext
+        run: |
+          $url = "https://mlocati.github.io/files/gettext-iconv-windows/gettext-0.21.0.zip" # Update to the latest version if needed
+          $output = "gettext.zip"
+          Invoke-WebRequest -Uri $url -OutFile $output
+
+      - name: Extract Gettext
+        run: |
+          Expand-Archive -Path gettext.zip -DestinationPath $env:ProgramFiles\gettext
+          Remove-Item -Path gettext.zip
+
+      - name: Add Gettext to PATH
+        run: |
+          $gettextPath = "$env:ProgramFiles\gettext\bin"
+          [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$gettextPath", [System.EnvironmentVariableTarget]::Machine)
+
       - name: Install build tools
         run: |
           pip install meson ninja
@@ -55,15 +71,14 @@ jobs:
 
       - name: Build GTK4 and dependencies
         run: |
-          gvsbuild build --enable-gi gtk4 libadwaita libpng gettext
-          choco install gettext
+          gvsbuild build --enable-gi gtk4 libadwaita libpng
 
       - name: Set up environment variables
         shell: cmd
         run: |
           echo GTK_INSTALL_PATH=C:\gtk >> %GITHUB_ENV%
           echo PKG_CONFIG_PATH=C:\gtk\lib\pkgconfig >> %GITHUB_ENV%
-          echo PATH=C:\gtk\bin;C:\Program Files\gettext\bin;%PATH% >> %GITHUB_ENV%
+          echo PATH=C:\gtk\bin;%PATH% >> %GITHUB_ENV%
 
       - name: Configure build
         run: meson setup builddir
