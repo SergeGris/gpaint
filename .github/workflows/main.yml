@@ -47,7 +47,7 @@ jobs:
 
       - name: Download Gettext
         run: |
-          $url = "https://mlocati.github.io/files/gettext-iconv-windows/gettext-0.21.0.zip" # Update to the latest version if needed
+          $url = "https://github.com/mlocati/gettext-iconv-windows/releases/download/v0.24-v1.17/gettext0.24-iconv1.17-shared-64.zip"
           $output = "gettext.zip"
           Invoke-WebRequest -Uri $url -OutFile $output
 
