@@ -42,7 +42,7 @@ gpaint_border_widget_measure (GtkWidget *widget,
   GpaintBorderWidget *self = GPAINT_BORDER_WIDGET (widget);
   gint child_min = 0, child_nat = 0;
 
-  if (self->child != NULL && gtk_widget_get_visible (self->child))
+  if (self->child && gtk_widget_get_visible (self->child))
     gtk_widget_measure (self->child, orientation, for_size, &child_min, &child_nat, NULL, NULL);
 
   *minimum = child_min + 2 * self->border_width;
@@ -120,7 +120,7 @@ gpaint_border_widget_set_child (GpaintBorderWidget *self, GtkWidget *child)
 
   g_clear_pointer (&self->child, gtk_widget_unparent);
 
-  if (child != NULL)
+  if (child)
     {
       self->child = child;
       gtk_widget_set_parent (child, GTK_WIDGET (self));

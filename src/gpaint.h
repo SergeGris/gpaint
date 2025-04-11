@@ -68,6 +68,8 @@ typedef struct
   cairo_surface_t *main_surface;
   cairo_surface_t *preview_surface;
 
+  //int width, height; // TODO
+
   cairo_surface_t *selected_surface;
   gboolean has_selection;
   GdkRectangle selected_rect;
