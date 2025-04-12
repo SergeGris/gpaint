@@ -56,11 +56,6 @@ jobs:
           Expand-Archive -Path gettext.zip -DestinationPath $env:ProgramFiles\gettext
           Remove-Item -Path gettext.zip
 
-      - name: Add Gettext to PATH
-        run: |
-          $gettextPath = "$env:ProgramFiles\gettext\bin"
-          [System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$gettextPath", [System.EnvironmentVariableTarget]::Machine)
-
       - name: Install build tools
         run: |
           pip install meson ninja
@@ -78,7 +73,11 @@ jobs:
         run: |
           echo GTK_INSTALL_PATH=C:\gtk >> %GITHUB_ENV%
           echo PKG_CONFIG_PATH=C:\gtk\lib\pkgconfig >> %GITHUB_ENV%
-          echo PATH=C:\gtk\bin;%PATH% >> %GITHUB_ENV%
+
+          #$gettextPath = "$env:ProgramFiles\gettext\bin"
+          #[System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$gettextPath", [System.EnvironmentVariableTarget]::Machine)
+
+          echo PATH=C:\gtk\bin;C:\Program Files\gettext\bin;%PATH% >> %GITHUB_ENV%
 
       - name: Configure build
         run: meson setup builddir
