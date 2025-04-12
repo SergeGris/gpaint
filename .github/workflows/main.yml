@@ -73,10 +73,6 @@ jobs:
         run: |
           echo GTK_INSTALL_PATH=C:\gtk >> %GITHUB_ENV%
           echo PKG_CONFIG_PATH=C:\gtk\lib\pkgconfig >> %GITHUB_ENV%
-
-          #$gettextPath = "$env:ProgramFiles\gettext\bin"
-          #[System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";$gettextPath", [System.EnvironmentVariableTarget]::Machine)
-
           echo PATH=C:\gtk\bin;C:\Program Files\gettext\bin;%PATH% >> %GITHUB_ENV%
 
       - name: Configure build
