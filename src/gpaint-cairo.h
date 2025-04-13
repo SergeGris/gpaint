@@ -4,11 +4,11 @@
 #include <cairo.h>
 
 static inline cairo_t *
-create_cairo (cairo_surface_t *surface, cairo_operator_t op)
+create_cairo (cairo_surface_t *surface, cairo_operator_t op, cairo_antialias_t antialiasing)
 {
   cairo_t *cr = cairo_create (surface);
   cairo_set_operator (cr, op);
-  cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
+  cairo_set_antialias (cr, antialiasing);
   return cr;
 }
 
@@ -16,7 +16,7 @@ static inline cairo_surface_t *
 create_surface (gint height, gint width)
 {
   cairo_surface_t *surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, height, width);
-  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE, CAIRO_ANTIALIAS_NONE);
   cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 0.0);
   cairo_paint (cr);
   cairo_destroy (cr);
@@ -41,13 +41,12 @@ static inline void
 draw_transparent_square (cairo_t *cr, double px, double py, double pw, double ph, double scale)
 {
   cairo_save (cr);
-  GdkRectangle v =
-    {
-      .x = (gint) (px / scale),
-      .y = (gint) (py / scale),
-      .width = (gint) (pw / scale),
-      .height = (gint) (ph / scale),
-    };
+  GdkRectangle v = {
+    .x = (gint) (px / scale),
+    .y = (gint) (py / scale),
+    .width = (gint) (pw / scale),
+    .height = (gint) (ph / scale),
+  };
 
   // TODO cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
   cairo_save (cr);

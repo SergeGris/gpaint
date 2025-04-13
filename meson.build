@@ -4,7 +4,7 @@ project('gpaint', 'c',
   default_options: [ 'warning_level=2', 'werror=false', 'c_std=gnu11' ],
 )
 
-i18n = import('i18n')
+# TODO i18n = import('i18n')
 gnome = import('gnome')
 cc = meson.get_compiler('c')
 
@@ -16,30 +16,30 @@ config_h.set_quoted('LOCALEDIR', get_option('prefix') / get_option('localedir'))
 # libadwaita (optional)
 adwaita_dep = dependency('libadwaita-1', required: false)
 
-png_dep = dependency('libpng', required: false)
-jpeg_dep = dependency('libjpeg', required: false)
-tiff_dep = dependency('libtiff-4', required: false)
-avif_dep = dependency('libavif', required: false)
+# png_dep = dependency('libpng', required: false)
+# jpeg_dep = dependency('libjpeg', required: false)
+# tiff_dep = dependency('libtiff-4', required: false)
+# avif_dep = dependency('libavif', required: false)
 
-# giflib: check header and library manually (without pkg-config)
-giflib_lib = cc.find_library('gif', required: false)
-if cc.has_header('gif_lib.h') and giflib_lib.found()
-  giflib_dep = declare_dependency(dependencies: [giflib_lib])
-  config_h.set('HAS_GIF', 1)
-else
-  giflib_dep = dependency('', required: false) # TODO
-  config_h.set('HAS_GIF', 0)
-endif
+# # giflib: check header and library manually (without pkg-config)
+# giflib_lib = cc.find_library('gif', required: false)
+# if cc.has_header('gif_lib.h') and giflib_lib.found()
+#   giflib_dep = declare_dependency(dependencies: [giflib_lib])
+#   config_h.set('HAS_GIF', 1)
+# else
+#   giflib_dep = dependency('', required: false) # TODO
+#   config_h.set('HAS_GIF', 0)
+# endif
 
 # Gather all optional dependencies together.
-optional_deps = [ png_dep, jpeg_dep, tiff_dep, avif_dep, giflib_dep ]
+optional_deps = [] #[ png_dep, jpeg_dep, tiff_dep, avif_dep, giflib_dep ]
 
 config_h.set('HAS_ADWAITA', adwaita_dep.found() ? 1 : 0)
 
-config_h.set('HAS_PNG',     png_dep.found()  ? 1 : 0)
-config_h.set('HAS_JPEG',    jpeg_dep.found() ? 1 : 0)
-config_h.set('HAS_TIFF',    tiff_dep.found() ? 1 : 0)
-config_h.set('HAS_AVIF',    avif_dep.found() ? 1 : 0)
+# config_h.set('HAS_PNG',     png_dep.found()  ? 1 : 0)
+# config_h.set('HAS_JPEG',    jpeg_dep.found() ? 1 : 0)
+# config_h.set('HAS_TIFF',    tiff_dep.found() ? 1 : 0)
+# config_h.set('HAS_AVIF',    avif_dep.found() ? 1 : 0)
 
 configure_file(output: 'config.h', configuration: config_h)
 add_project_arguments(['-I' + meson.project_build_root()], language: 'c')
@@ -109,9 +109,9 @@ foreach arg: test_c_args
 endforeach
 add_project_arguments(project_c_args, language: 'c')
 
-subdir('data')
+# TODO subdir('data')
 subdir('src')
-subdir('po')
+# TODO subdir('po')
 
 gnome.post_install(
      glib_compile_schemas: true,

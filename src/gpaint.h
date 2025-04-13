@@ -50,6 +50,8 @@ typedef struct
   GtkWidget *info_widget;
 
   GtkWidget *layers;
+  GAction *antialiasing_action;
+  cairo_antialias_t antialiasing;
   GAction *show_grid_action;
   GAction *cut_action;
   GAction *copy_action;
@@ -57,7 +59,6 @@ typedef struct
   GtkAdjustment *vadj, *hadj;
 
   gboolean smooth_preview;
-  gboolean antialiasing;
 
   double velocity_x;
   double velocity_y;
@@ -68,7 +69,7 @@ typedef struct
   cairo_surface_t *main_surface;
   cairo_surface_t *preview_surface;
 
-  //int width, height; // TODO
+  // int width, height; // TODO
 
   cairo_surface_t *selected_surface;
   gboolean has_selection;

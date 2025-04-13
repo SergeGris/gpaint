@@ -1,9 +1,9 @@
 #include "tools-internal.h"
 
 void
-handle_pixel (cairo_surface_t *surface, gint x, gint y, const GdkRGBA *color)
+handle_pixel (cairo_surface_t *surface, gint x, gint y, const GdkRGBA *color, cairo_antialias_t antialiasing)
 {
-  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE, antialiasing);
   gdk_cairo_set_source_rgba (cr, color);
   cairo_rectangle (cr, x, y, 1, 1);
   cairo_fill (cr);
@@ -11,9 +11,9 @@ handle_pixel (cairo_surface_t *surface, gint x, gint y, const GdkRGBA *color)
 }
 
 void // TODO rename
-draw_line_with_width_and_color (cairo_surface_t *surface, gint x0, gint y0, gint x1, gint y1, gdouble width, const GdkRGBA *color)
+draw_line_with_width_and_color (cairo_surface_t *surface, gint x0, gint y0, gint x1, gint y1, gdouble width, const GdkRGBA *color, cairo_antialias_t antialiasing)
 {
-  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE, antialiasing);
   cairo_set_line_width (cr, width);
   cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND);
   cairo_set_line_join (cr, CAIRO_LINE_JOIN_ROUND);

@@ -2,20 +2,24 @@
 #include "tools-internal.h"
 
 static void draw_bucket_handler (AppState *state, gint x0, gint y0, gint x1, gint y1);
+
+// Do nothing on motion.
 static void
 motion_handler (AppState *state, gint x, gint y)
 {
-} // Do nothing on motion.
+  return;
+}
 
-const Tool global_bucket_tool = {
-  .type = TOOL_BUCKET,
-  .icon = &bucket_data,
-  .cursor = NULL,
-  .draw_handler = draw_bucket_handler,
-  .motion_handler = motion_handler,
-  .override_main_surface = true,
-  .is_drawing = TRUE,
-};
+const Tool global_bucket_tool =
+  {
+    .type = TOOL_BUCKET,
+    .icon = &bucket_data,
+    .cursor = NULL,
+    .draw_handler = draw_bucket_handler,
+    .motion_handler = motion_handler,
+    .override_main_surface = true,
+    .is_drawing = TRUE,
+  };
 
 static gboolean
 rgba_equal (const GdkRGBA *rgba1, const GdkRGBA *rgba2)

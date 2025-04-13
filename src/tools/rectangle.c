@@ -21,7 +21,7 @@ draw_rectangle_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
   gint dx = abs (x1 - x0);
   gint dy = abs (y1 - y0);
 
-  cairo_t *cr = create_cairo (state->preview_surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (state->preview_surface, CAIRO_OPERATOR_SOURCE, state->antialiasing);
 
   // Draw the outer rectangle (border) with primary color
   cairo_rectangle (cr, min_x + 0.5, min_y + 0.5, dx, dy);

@@ -23,7 +23,7 @@ draw_brush_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
   /* For brush, simply plot the pixel at the new coordinate */
   // handle_pixel (state, x1, y1, state->color);
 
-  cairo_t *cr = create_cairo (state->preview_surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (state->preview_surface, CAIRO_OPERATOR_SOURCE, state->antialiasing);
   gdk_cairo_set_source_rgba (cr, state->p_color);
   gdouble size = state->brush_size;
   cairo_rectangle (cr, x0 + 0.5 - size / 2, y0 + 0.5 - size / 2, size, size);
@@ -45,7 +45,7 @@ draw_brush_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
 static void
 motion_brush_handler (AppState *state, gint x, gint y)
 {
-  draw_line_with_width_and_color (state->preview_surface, state->last_point.x, state->last_point.y, x, y, state->brush_size, state->p_color);
+  draw_line_with_width_and_color (state->preview_surface, state->last_point.x, state->last_point.y, x, y, state->brush_size, state->p_color, state->antialiasing);
   state->last_point.x = x;
   state->last_point.y = y;
 }

@@ -17,9 +17,9 @@ const Tool global_eraser_tool = {
 };
 
 static void
-draw_eraser (cairo_surface_t *surface, const GdkRGBA *color, gint x, gint y, gdouble size)
+draw_eraser (cairo_surface_t *surface, const GdkRGBA *color, gint x, gint y, gdouble size, cairo_antialias_t antialiasing)
 {
-  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE, antialiasing);
   gdk_cairo_set_source_rgba (cr, color);
   cairo_rectangle (cr, x + 0.5 - size / 2, y + 0.5 - size / 2, size, size);
   cairo_fill (cr);
@@ -29,15 +29,15 @@ draw_eraser (cairo_surface_t *surface, const GdkRGBA *color, gint x, gint y, gdo
 static void
 draw_eraser_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
 {
-  draw_eraser (state->preview_surface, &state->secondary_color, x0, y0, state->eraser_size);
+  draw_eraser (state->preview_surface, &state->secondary_color, x0, y0, state->eraser_size, state->antialiasing);
 }
 
 static void
 motion_eraser_handler (AppState *state, gint x, gint y)
 {
   draw_line_with_width_and_color (state->preview_surface, state->last_point.x, state->last_point.y,
-                                  x, y, state->eraser_size, &state->secondary_color);
-  draw_eraser (state->preview_surface, &state->secondary_color, x, y, state->eraser_size);
+                                  x, y, state->eraser_size, &state->secondary_color, state->antialiasing);
+  draw_eraser (state->preview_surface, &state->secondary_color, x, y, state->eraser_size, state->antialiasing);
   state->last_point.x = x;
   state->last_point.y = y;
 }
@@ -47,7 +47,7 @@ draw_eraser_cursor (AppState *state, cairo_t *cr)
 {
   const gdouble pixel_size = state->zoom_level;
   // TODO cairo_set_antialias (cr, CAIRO_ANTIALIAS_SUBPIXEL);
-  //cairo_set_line_width (cr, 0.5);
+  // cairo_set_line_width (cr, 0.5);
   const gdouble size = state->eraser_size * pixel_size;
   /* gdouble x = floor (state->cursor_x / pixel_size) * pixel_size + 0.5 - size / 2; */
   /* gdouble y = floor (state->cursor_y / pixel_size) * pixel_size + 0.5 - size / 2; */

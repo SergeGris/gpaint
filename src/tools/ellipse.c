@@ -26,7 +26,7 @@ draw_ellipse (AppState *state, gint x0, gint y0, gint x1, gint y1)
   gdouble rx = dx / 2.0;
   gdouble ry = dy / 2.0;
 
-  cairo_t *cr = create_cairo (state->preview_surface, CAIRO_OPERATOR_SOURCE);
+  cairo_t *cr = create_cairo (state->preview_surface, CAIRO_OPERATOR_SOURCE, state->antialiasing);
 
   // Draw the outer ellipse (the stroke)
   cairo_save (cr);

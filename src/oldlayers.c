@@ -1,16 +1,17 @@
-#include <gtk/gtk.h>
 #include <cairo.h>
+#include <gtk/gtk.h>
 
-#define GPAINT_TYPE_LAYERS_WIDGET (gpaint_layers_widget_get_type())
-G_DECLARE_FINAL_TYPE(GPaintLayersWidget, gpaint_layers_widget, GPAINT, LAYERS_WIDGET, GtkBox)
+#define GPAINT_TYPE_LAYERS_WIDGET (gpaint_layers_widget_get_type ())
+G_DECLARE_FINAL_TYPE (GPaintLayersWidget, gpaint_layers_widget, GPAINT, LAYERS_WIDGET, GtkBox)
 
 /* Custom preview widget */
 typedef struct _GpaintPreviewWidget GpaintPreviewWidget;
 
-#define GPAINT_TYPE_PREVIEW_WIDGET (gpaint_preview_widget_get_type())
-G_DECLARE_FINAL_TYPE(GpaintPreviewWidget, gpaint_preview_widget, GPAINT, PREVIEW_WIDGET, GtkWidget)
+#define GPAINT_TYPE_PREVIEW_WIDGET (gpaint_preview_widget_get_type ())
+G_DECLARE_FINAL_TYPE (GpaintPreviewWidget, gpaint_preview_widget, GPAINT, PREVIEW_WIDGET, GtkWidget)
 
-struct _GPaintLayersWidget {
+struct _GPaintLayersWidget
+{
   GtkBox parent_instance;
 
   /* Layer management */
@@ -21,147 +22,156 @@ struct _GPaintLayersWidget {
 };
 
 /* Preview widget implementation */
-struct _GpaintPreviewWidget {
+struct _GpaintPreviewWidget
+{
   GtkWidget parent_instance;
   cairo_surface_t *surface;
   gint target_size;
 };
 
-G_DEFINE_TYPE(GpaintPreviewWidget, gpaint_preview_widget, GTK_TYPE_WIDGET)
+G_DEFINE_TYPE (GpaintPreviewWidget, gpaint_preview_widget, GTK_TYPE_WIDGET)
 
 static void
-gpaint_preview_widget_snapshot(GtkWidget *widget, GtkSnapshot *snapshot)
+gpaint_preview_widget_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 {
-  GpaintPreviewWidget *self = GPAINT_PREVIEW_WIDGET(widget);
-  if (!self->surface) return;
+  GpaintPreviewWidget *self = GPAINT_PREVIEW_WIDGET (widget);
+  if (!self->surface)
+    return;
 
   graphene_rect_t bounds;
-  graphene_rect_init(&bounds, 0, 0,
-                    gtk_widget_get_width(widget),
-                    gtk_widget_get_height(widget));
+  graphene_rect_init (&bounds, 0, 0,
+                      gtk_widget_get_width (widget),
+                      gtk_widget_get_height (widget));
 
-  cairo_t *cr = gtk_snapshot_append_cairo(snapshot, &bounds);
+  cairo_t *cr = gtk_snapshot_append_cairo (snapshot, &bounds);
 
   /* Calculate scaling */
-  gdouble surf_w = cairo_image_surface_get_width(self->surface);
-  gdouble surf_h = cairo_image_surface_get_height(self->surface);
-  gdouble scale = MIN((gdouble)self->target_size / surf_w,
-                     (gdouble)self->target_size / surf_h);
+  gdouble surf_w = cairo_image_surface_get_width (self->surface);
+  gdouble surf_h = cairo_image_surface_get_height (self->surface);
+  gdouble scale = MIN ((gdouble) self->target_size / surf_w,
+                       (gdouble) self->target_size / surf_h);
 
   /* Draw centered preview */
-  cairo_save(cr);
-  cairo_translate(cr,
-                 (self->target_size - surf_w * scale) / 2,
-                 (self->target_size - surf_h * scale) / 2);
-  cairo_scale(cr, scale, scale);
-  cairo_set_source_surface(cr, self->surface, 0, 0);
-  cairo_paint(cr);
-  cairo_restore(cr);
+  cairo_save (cr);
+  cairo_translate (cr,
+                   (self->target_size - surf_w * scale) / 2,
+                   (self->target_size - surf_h * scale) / 2);
+  cairo_scale (cr, scale, scale);
+  cairo_set_source_surface (cr, self->surface, 0, 0);
+  cairo_paint (cr);
+  cairo_restore (cr);
 }
 
 static void
-gpaint_preview_widget_dispose(GObject *object)
+gpaint_preview_widget_dispose (GObject *object)
 {
-  GpaintPreviewWidget *self = GPAINT_PREVIEW_WIDGET(object);
-  if (self->surface) {
-    cairo_surface_destroy(self->surface);
-    self->surface = NULL;
-  }
-  G_OBJECT_CLASS(gpaint_preview_widget_parent_class)->dispose(object);
+  GpaintPreviewWidget *self = GPAINT_PREVIEW_WIDGET (object);
+  if (self->surface)
+    {
+      cairo_surface_destroy (self->surface);
+      self->surface = NULL;
+    }
+  G_OBJECT_CLASS (gpaint_preview_widget_parent_class)->dispose (object);
 }
 
 static void
-gpaint_preview_widget_class_init(GpaintPreviewWidgetClass *klass)
+gpaint_preview_widget_class_init (GpaintPreviewWidgetClass *klass)
 {
-  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(klass);
+  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
   widget_class->snapshot = gpaint_preview_widget_snapshot;
 
-  GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->dispose = gpaint_preview_widget_dispose;
 }
 
 static void
-gpaint_preview_widget_init(GpaintPreviewWidget *self)
+gpaint_preview_widget_init (GpaintPreviewWidget *self)
 {
   self->surface = NULL;
   self->target_size = 100;
 }
 
 GpaintPreviewWidget *
-gpaint_preview_widget_new(cairo_surface_t *surface, gint target_size)
+gpaint_preview_widget_new (cairo_surface_t *surface, gint target_size)
 {
-  GpaintPreviewWidget *preview = g_object_new(GPAINT_TYPE_PREVIEW_WIDGET, NULL);
-  preview->surface = cairo_surface_reference(surface);
+  GpaintPreviewWidget *preview = g_object_new (GPAINT_TYPE_PREVIEW_WIDGET, NULL);
+  preview->surface = cairo_surface_reference (surface);
   preview->target_size = target_size;
-  gtk_widget_set_size_request(GTK_WIDGET(preview), target_size, target_size);
+  gtk_widget_set_size_request (GTK_WIDGET (preview), target_size, target_size);
   return preview;
 }
 
 /* Modified layer preview creation */
-static GtkWidget*
-create_layer_preview(GPaintLayersWidget *widget, cairo_surface_t *surface)
+static GtkWidget *
+create_layer_preview (GPaintLayersWidget *widget, cairo_surface_t *surface)
 {
-  GtkWidget *frame = gtk_frame_new(NULL);
-  GtkWidget *button = gtk_toggle_button_new();
-  GtkWidget *preview = GTK_WIDGET(gpaint_preview_widget_new(surface, widget->preview_size));
+  GtkWidget *frame = gtk_frame_new (NULL);
+  GtkWidget *button = gtk_toggle_button_new ();
+  GtkWidget *preview = GTK_WIDGET (gpaint_preview_widget_new (surface, widget->preview_size));
 
   // TODO gtk_widget_add_css_class(frame, "layer-preview");
-  gtk_frame_set_child(GTK_FRAME(frame), preview);
-  gtk_button_set_child(GTK_BUTTON(button), frame);
+  gtk_frame_set_child (GTK_FRAME (frame), preview);
+  gtk_button_set_child (GTK_BUTTON (button), frame);
 
   return button;
 }
 
 /* Rest of GPaintLayersWidget implementation */
-G_DEFINE_TYPE(GPaintLayersWidget, gpaint_layers_widget, GTK_TYPE_BOX)
+G_DEFINE_TYPE (GPaintLayersWidget, gpaint_layers_widget, GTK_TYPE_BOX)
 
 static void
-on_layer_toggled(GtkToggleButton *button, gpointer user_data)
+on_layer_toggled (GtkToggleButton *button, gpointer user_data)
 {
-  GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET(user_data);
+  GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET (user_data);
 
   GtkWidget *child;
-  for (child = gtk_widget_get_first_child(GTK_WIDGET(self));
+  for (child = gtk_widget_get_first_child (GTK_WIDGET (self));
        child != NULL;
-       child = gtk_widget_get_next_sibling(child)) {
-    if (GTK_IS_TOGGLE_BUTTON(child) && child != GTK_WIDGET(button) && child != self->add_button) {
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(child), FALSE);
+       child = gtk_widget_get_next_sibling (child))
+    {
+      if (GTK_IS_TOGGLE_BUTTON (child) && child != GTK_WIDGET (button) && child != self->add_button)
+        {
+          gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (child), FALSE);
+        }
     }
-  }
 }
 
 void
-gpaint_layers_widget_add_layer(GPaintLayersWidget *widget, cairo_surface_t *layer)
+gpaint_layers_widget_add_layer (GPaintLayersWidget *widget, cairo_surface_t *layer)
 {
-  GtkWidget *preview = create_layer_preview(widget, layer);
-  g_ptr_array_add(widget->layers, cairo_surface_reference(layer));
+  GtkWidget *preview = create_layer_preview (widget, layer);
+  g_ptr_array_add (widget->layers, cairo_surface_reference (layer));
 
-  g_signal_connect(preview, "toggled", G_CALLBACK(on_layer_toggled), widget);
-  gtk_box_insert_child_after(GTK_BOX(widget), preview, widget->add_button);
+  g_signal_connect (preview, "toggled", G_CALLBACK (on_layer_toggled), widget);
+  gtk_box_insert_child_after (GTK_BOX (widget), preview, widget->add_button);
 }
 
 void
-gpaint_layers_widget_remove_layer(GPaintLayersWidget *widget, guint index)
+gpaint_layers_widget_remove_layer (GPaintLayersWidget *widget, guint index)
 {
-  if (index >= widget->layers->len) return;
+  if (index >= widget->layers->len)
+    return;
 
-  GtkWidget *child = gtk_widget_get_first_child(GTK_WIDGET(widget));
-  for (guint i = 0; child && i <= index; i++) {
-    if (i == index && child != widget->add_button) {
-      gtk_box_remove(GTK_BOX(widget), child);
-      break;
+  GtkWidget *child = gtk_widget_get_first_child (GTK_WIDGET (widget));
+  for (guint i = 0; child && i <= index; i++)
+    {
+      if (i == index && child != widget->add_button)
+        {
+          gtk_box_remove (GTK_BOX (widget), child);
+          break;
+        }
+      child = gtk_widget_get_next_sibling (child);
     }
-    child = gtk_widget_get_next_sibling(child);
-  }
 
-  if (index < widget->layers->len) {
-    cairo_surface_t *surface = g_ptr_array_remove_index(widget->layers, index);
-    cairo_surface_destroy(surface);
-  }
+  if (index < widget->layers->len)
+    {
+      cairo_surface_t *surface = g_ptr_array_remove_index (widget->layers, index);
+      cairo_surface_destroy (surface);
+    }
 }
 
 static void
-gpaint_layers_widget_dispose(GObject *object)
+gpaint_layers_widget_dispose (GObject *object)
 {
   // TODO TODO TODO
   /* GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET(object); */
@@ -176,50 +186,50 @@ gpaint_layers_widget_dispose(GObject *object)
   /* g_ptr_array_free(self->layers, TRUE); */
   /* self->layers = NULL; */
 
-  G_OBJECT_CLASS(gpaint_layers_widget_parent_class)->dispose(object);
+  G_OBJECT_CLASS (gpaint_layers_widget_parent_class)->dispose (object);
 }
 
 static void
-gpaint_layers_widget_class_init(GPaintLayersWidgetClass *klass)
+gpaint_layers_widget_class_init (GPaintLayersWidgetClass *klass)
 {
-  GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   gobject_class->dispose = gpaint_layers_widget_dispose;
 }
 
 static void
-on_add_layer_clicked(GtkButton *button, gpointer user_data)
+on_add_layer_clicked (GtkButton *button, gpointer user_data)
 {
-  GPaintLayersWidget *widget = GPAINT_LAYERS_WIDGET(user_data);
+  GPaintLayersWidget *widget = GPAINT_LAYERS_WIDGET (user_data);
 
-  cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 200, 200);
-  cairo_t *cr = cairo_create(surface);
-  cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.0);
-  cairo_paint(cr);
-  cairo_destroy(cr);
+  cairo_surface_t *surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 200, 200);
+  cairo_t *cr = cairo_create (surface);
+  cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 0.0);
+  cairo_paint (cr);
+  cairo_destroy (cr);
 
-  gpaint_layers_widget_add_layer(widget, surface);
-  cairo_surface_destroy(surface);
+  gpaint_layers_widget_add_layer (widget, surface);
+  cairo_surface_destroy (surface);
 }
 
 static void
-gpaint_layers_widget_init(GPaintLayersWidget *self)
+gpaint_layers_widget_init (GPaintLayersWidget *self)
 {
-  self->layers = g_ptr_array_new_with_free_func((GDestroyNotify)cairo_surface_destroy);
+  self->layers = g_ptr_array_new_with_free_func ((GDestroyNotify) cairo_surface_destroy);
   self->preview_size = 100;
   self->spacing = 8;
 
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(self), GTK_ORIENTATION_VERTICAL);
-  gtk_box_set_spacing(GTK_BOX(self), self->spacing);
+  gtk_orientable_set_orientation (GTK_ORIENTABLE (self), GTK_ORIENTATION_VERTICAL);
+  gtk_box_set_spacing (GTK_BOX (self), self->spacing);
 
-  self->add_button = gtk_button_new_with_label("Add Layer");
-  g_signal_connect(self->add_button, "clicked", G_CALLBACK(on_add_layer_clicked), self);
-  gtk_box_append(GTK_BOX(self), self->add_button);
+  self->add_button = gtk_button_new_with_label ("Add Layer");
+  g_signal_connect (self->add_button, "clicked", G_CALLBACK (on_add_layer_clicked), self);
+  gtk_box_append (GTK_BOX (self), self->add_button);
 }
 
-GtkWidget*
-gpaint_layers_widget_new(void)
+GtkWidget *
+gpaint_layers_widget_new (void)
 {
-  return g_object_new(GPAINT_TYPE_LAYERS_WIDGET, NULL);
+  return g_object_new (GPAINT_TYPE_LAYERS_WIDGET, NULL);
 }
 
 /* #include <cairo.h> */

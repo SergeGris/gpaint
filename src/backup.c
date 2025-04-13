@@ -59,8 +59,7 @@ save_backup (BackupManager *manager, cairo_surface_t *main_surface)
 static void
 apply_backup (AppState *state, cairo_surface_t *backup)
 {
-  if (cairo_image_surface_get_width (backup) != cairo_image_surface_get_width (state->main_surface)
-   || cairo_image_surface_get_height (backup) != cairo_image_surface_get_height (state->main_surface))
+  if (cairo_image_surface_get_width (backup) != cairo_image_surface_get_width (state->main_surface) || cairo_image_surface_get_height (backup) != cairo_image_surface_get_height (state->main_surface))
     {
       state->main_surface = cairo_image_surface_create (state->format,
                                                         cairo_image_surface_get_width (backup),

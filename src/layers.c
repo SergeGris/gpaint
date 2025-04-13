@@ -1,5 +1,5 @@
-#include <gtk/gtk.h>
 #include <cairo.h>
+#include <gtk/gtk.h>
 
 #define GPAINT_TYPE_LAYERS_WIDGET (gpaint_layers_widget_get_type ())
 G_DECLARE_FINAL_TYPE (GPaintLayersWidget, gpaint_layers_widget, GPAINT, LAYERS_WIDGET, GtkBox);
@@ -52,7 +52,7 @@ gpaint_preview_widget_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
   cairo_save (cr);
   cairo_translate (cr,
                    (self->target_size - surf_w * scale) / 2,
-		   (self->target_size - surf_h * scale) / 2);
+                   (self->target_size - surf_h * scale) / 2);
   cairo_scale (cr, scale, scale);
   cairo_set_source_surface (cr, self->surface, 0, 0);
   cairo_paint (cr);
@@ -100,7 +100,7 @@ gpaint_preview_widget_new (cairo_surface_t *surface, gint target_size)
 
 void
 gpaint_preview_widget_set_surface (GPaintPreviewWidget *widget,
-				   cairo_surface_t *surface)
+                                   cairo_surface_t *surface)
 {
   if (widget->surface)
     cairo_surface_destroy (widget->surface);
@@ -113,7 +113,7 @@ gpaint_layers_widget_queue_redraw (GtkWidget *widget)
 {
   GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET (widget);
 
-  for (GList * l = self->layer_rows; l != NULL; l = l->next)
+  for (GList *l = self->layer_rows; l != NULL; l = l->next)
     {
       // TODO redraw only selected
       LayerRow *row = l->data;
@@ -128,10 +128,10 @@ gpaint_preview_widget_queue_redraw (GPaintPreviewWidget *widget)
 }
 
 enum
-  {
-    SURFACE_SELECTED,
-    N_SIGNALS
-  };
+{
+  SURFACE_SELECTED,
+  N_SIGNALS
+};
 
 static guint gpaint_layers_widget_signals[N_SIGNALS] = { 0 };
 
@@ -146,22 +146,22 @@ on_layer_toggled (GtkToggleButton *button, gpointer user_data)
     {
       self->selected_toggle = GTK_WIDGET (button);
       cairo_surface_t *surface =
-	g_object_get_data (G_OBJECT (button), "surface");
+          g_object_get_data (G_OBJECT (button), "surface");
 
-      for (GList * l = self->layer_rows; l != NULL; l = l->next)
-	{
-	  LayerRow *row = l->data;
+      for (GList *l = self->layer_rows; l != NULL; l = l->next)
+        {
+          LayerRow *row = l->data;
 
-	  if (row->toggle != button)
-	    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (row->toggle), FALSE);
-	}
+          if (row->toggle != button)
+            gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (row->toggle), FALSE);
+        }
 
       g_signal_emit (self, gpaint_layers_widget_signals[SURFACE_SELECTED], 0, surface);
     }
   else
     {
       if (self->selected_toggle == GTK_WIDGET (button))
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);
     }
 }
 
@@ -207,7 +207,7 @@ update_delete_buttons (GPaintLayersWidget *widget)
 {
   gboolean only_one = g_list_length (widget->layer_rows) <= 1;
 
-  for (GList * l = widget->layer_rows; l != NULL; l = l->next)
+  for (GList *l = widget->layer_rows; l != NULL; l = l->next)
     {
       LayerRow *row = l->data;
       gtk_widget_set_sensitive (row->delete_button, !only_one);
@@ -219,28 +219,28 @@ on_delete_button_clicked (GtkButton *button, gpointer user_data)
 {
   GPaintLayersWidget *widget = GPAINT_LAYERS_WIDGET (user_data);
 
-  for (GList * l = widget->layer_rows; l != NULL; l = l->next)
+  for (GList *l = widget->layer_rows; l != NULL; l = l->next)
     {
       LayerRow *row = l->data;
 
       if (gtk_widget_is_ancestor (GTK_WIDGET (button), row->row))
-	{
-	  if (g_list_length (widget->layer_rows) <= 1)
-	    return;
+        {
+          if (g_list_length (widget->layer_rows) <= 1)
+            return;
 
-	  gboolean was_selected = (widget->selected_toggle == (GtkWidget *) row->toggle);
-	  gtk_box_remove (GTK_BOX (widget), row->row);
-	  widget->layer_rows = g_list_delete_link (widget->layer_rows, l);
+          gboolean was_selected = (widget->selected_toggle == (GtkWidget *) row->toggle);
+          gtk_box_remove (GTK_BOX (widget), row->row);
+          widget->layer_rows = g_list_delete_link (widget->layer_rows, l);
 
-	  if (was_selected && widget->layer_rows)
-	    {
-	      LayerRow *next = widget->layer_rows->data;
-	      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (next->toggle), TRUE);
-	    }
+          if (was_selected && widget->layer_rows)
+            {
+              LayerRow *next = widget->layer_rows->data;
+              gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (next->toggle), TRUE);
+            }
 
           update_delete_buttons (widget);
-	  return;
-	}
+          return;
+        }
     }
 }
 
@@ -257,23 +257,23 @@ create_layer_row (GPaintLayersWidget *widget, cairo_surface_t *surface)
   gtk_button_set_child (GTK_BUTTON (lrow->toggle), GTK_WIDGET (preview));
   g_object_set_data_full (G_OBJECT (lrow->toggle),
                           "surface",
-			  cairo_surface_reference (surface),
-			  (GDestroyNotify) cairo_surface_destroy);
+                          cairo_surface_reference (surface),
+                          (GDestroyNotify) cairo_surface_destroy);
   g_signal_connect (lrow->toggle, "toggled", G_CALLBACK (on_layer_toggled), widget);
 
   lrow->delete_button = gtk_button_new_with_label ("✕");
   g_signal_connect (lrow->delete_button, "clicked",
-		    G_CALLBACK (on_delete_button_clicked), widget);
+                    G_CALLBACK (on_delete_button_clicked), widget);
 
   lrow->special_toggle = GTK_TOGGLE_BUTTON (gtk_toggle_button_new_with_label ("★"));
 
   // TODO
   GtkCssProvider *provider = gtk_css_provider_new ();
   gtk_css_provider_load_from_string (provider,
-				     ".delete-button { background-color: #d9534f; color: white; }");
+                                     ".delete-button { background-color: #d9534f; color: white; }");
   gtk_style_context_add_provider_for_display (gdk_display_get_default (),
-					      GTK_STYLE_PROVIDER (provider),
-					      GTK_STYLE_PROVIDER_PRIORITY_USER);
+                                              GTK_STYLE_PROVIDER (provider),
+                                              GTK_STYLE_PROVIDER_PRIORITY_USER);
   g_object_unref (provider);
   gtk_widget_add_css_class (lrow->delete_button, "delete-button");
 
@@ -310,7 +310,7 @@ create_layer_row (GPaintLayersWidget *widget, cairo_surface_t *surface)
 
 void
 gpaint_layers_widget_add_layer (GPaintLayersWidget *widget,
-				cairo_surface_t *surface)
+                                cairo_surface_t *surface)
 {
   LayerRow *lrow = create_layer_row (widget, surface);
   widget->layer_rows = g_list_append (widget->layer_rows, lrow);
@@ -326,16 +326,16 @@ gpaint_layers_widget_select_next (GPaintLayersWidget *widget)
   if (!widget->selected_toggle || !widget->layer_rows)
     return;
 
-  for (GList * l = widget->layer_rows; l != NULL; l = l->next)
+  for (GList *l = widget->layer_rows; l != NULL; l = l->next)
     {
       LayerRow *row = l->data;
       if ((GtkWidget *) row->toggle == widget->selected_toggle)
-	{
-	  GList *next = l->next ? l->next : widget->layer_rows;
-	  LayerRow *next_row = next->data;
-	  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (next_row->toggle), TRUE);
-	  return;
-	}
+        {
+          GList *next = l->next ? l->next : widget->layer_rows;
+          LayerRow *next_row = next->data;
+          gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (next_row->toggle), TRUE);
+          return;
+        }
     }
 }
 
@@ -344,33 +344,33 @@ gpaint_layers_widget_select_prev (GPaintLayersWidget *widget)
 {
   if (!widget->selected_toggle || !widget->layer_rows)
     return;
-  for (GList * l = widget->layer_rows; l != NULL; l = l->next)
+  for (GList *l = widget->layer_rows; l != NULL; l = l->next)
     {
       LayerRow *row = l->data;
 
       if ((GtkWidget *) row->toggle == widget->selected_toggle)
-	{
-	  GList *prev = l->prev ? l->prev : g_list_last (widget->layer_rows);
-	  LayerRow *prev_row = prev->data;
-	  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (prev_row->toggle), TRUE);
-	  return;
-	}
+        {
+          GList *prev = l->prev ? l->prev : g_list_last (widget->layer_rows);
+          LayerRow *prev_row = prev->data;
+          gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (prev_row->toggle), TRUE);
+          return;
+        }
     }
 }
 
 void
 gpaint_layers_widget_update_preview (GPaintLayersWidget *widget,
-				     cairo_surface_t *surface)
+                                     cairo_surface_t *surface)
 {
-  for (GList * l = widget->layer_rows; l; l = l->next)
+  for (GList *l = widget->layer_rows; l; l = l->next)
     {
       LayerRow *row = l->data;
       cairo_surface_t *surf = g_object_get_data (G_OBJECT (row->toggle), "surface");
       if (surf == surface)
-	{
-	  gpaint_preview_widget_set_surface (row->preview, surface);
-	  return;
-	}
+        {
+          gpaint_preview_widget_set_surface (row->preview, surface);
+          return;
+        }
     }
 }
 
@@ -378,7 +378,7 @@ static void
 gpaint_layers_widget_dispose (GObject *object)
 {
   GPaintLayersWidget *self = GPAINT_LAYERS_WIDGET (object);
-  for (GList * l = self->layer_rows; l; l = l->next)
+  for (GList *l = self->layer_rows; l; l = l->next)
     {
       LayerRow *row = l->data;
       // Free allocated LayerRow
@@ -411,7 +411,7 @@ gpaint_layers_widget_init (GPaintLayersWidget *self)
   self->spacing = 8;
   self->selected_toggle = NULL;
   gtk_orientable_set_orientation (GTK_ORIENTABLE (self),
-				  GTK_ORIENTATION_VERTICAL);
+                                  GTK_ORIENTATION_VERTICAL);
   gtk_box_set_spacing (GTK_BOX (self), self->spacing);
   self->add_button = gtk_button_new_with_label ("Add Layer");
   g_signal_connect (self->add_button, "clicked", G_CALLBACK (on_add_layer_clicked), self);

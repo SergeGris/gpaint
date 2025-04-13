@@ -16,23 +16,23 @@ const Tool global_symmetric_freehand_tool = {
 static void
 draw_symmetric_freehand_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
 {
-  handle_pixel (state->preview_surface, x1, y1, state->p_color);
+  handle_pixel (state->preview_surface, x1, y1, state->p_color, state->antialiasing);
 
-  int width = cairo_image_surface_get_width(state->main_surface);
-  int height = cairo_image_surface_get_height(state->main_surface);
+  int width = cairo_image_surface_get_width (state->main_surface);
+  int height = cairo_image_surface_get_height (state->main_surface);
 
-  handle_pixel (state->preview_surface, width - x1 - 1, height - y1 - 1, state->p_color);
+  handle_pixel (state->preview_surface, width - x1 - 1, height - y1 - 1, state->p_color, state->antialiasing);
 }
 
 static void
 motion_symmetric_freehand_handler (AppState *state, gint x, gint y)
 {
-  draw_line_with_width_and_color (state->preview_surface, state->last_point.x, state->last_point.y, x, y, 1.0, state->p_color);
+  draw_line_with_width_and_color (state->preview_surface, state->last_point.x, state->last_point.y, x, y, 1.0, state->p_color, state->antialiasing);
 
-  int width = cairo_image_surface_get_width(state->main_surface);
-  int height = cairo_image_surface_get_height(state->main_surface);
+  int width = cairo_image_surface_get_width (state->main_surface);
+  int height = cairo_image_surface_get_height (state->main_surface);
 
-  draw_line_with_width_and_color (state->preview_surface, width - state->last_point.x - 1, height - state->last_point.y - 1, width - x - 1, height - y - 1, 1.0, state->p_color);
+  draw_line_with_width_and_color (state->preview_surface, width - state->last_point.x - 1, height - state->last_point.y - 1, width - x - 1, height - y - 1, 1.0, state->p_color, state->antialiasing);
 
   state->last_point.x = x;
   state->last_point.y = y;

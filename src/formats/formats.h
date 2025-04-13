@@ -63,8 +63,9 @@ typedef struct
 } AVIFSettings;
 
 /* Settings structure for GIF codec (currently unused – placeholder) */
-typedef struct {
-    int dummy; // You can later add quality or dithering parameters
+typedef struct
+{
+  int dummy; // You can later add quality or dithering parameters
 } GIFSettings;
 
 extern int save_image (const char *filename, cairo_surface_t *surface, void *settings);

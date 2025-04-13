@@ -15,5 +15,6 @@ const Tool global_line_tool = {
 static void
 draw_line_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
 {
-  draw_line_with_width_and_color (state->preview_surface, x0, y0, x1, y1, state->width, state->p_color);
+  draw_line_with_width_and_color (state->preview_surface, x0, y0, x1, y1,
+                                  state->width, state->p_color, state->antialiasing);
 }
