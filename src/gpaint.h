@@ -102,12 +102,24 @@ typedef struct
 #include "gpaint-cairo.h"
 
 #define GPAINT_GDK_RGBA_GREY(a) ((GdkRGBA) { a, a, a, 1.0 })
+#define GPAINT_TRANSPARENT_FIRST_COLOR 0.8
+#define GPAINT_TRANSPARENT_SECOND_COLOR 0.7
 
 static inline cairo_surface_t *
 gpaint_get_current_surface (AppState *state)
 {
   return state->main_surface;
 }
+
+// TODO
+
+#ifndef g_autoptr
+#define g_autoptr(type) type *
+#endif
+
+#ifndef g_autofree
+#define g_autofree
+#endif
 
 // TODO
 /* static void */

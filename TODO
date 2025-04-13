@@ -2,9 +2,9 @@
 + [ ] Implement resizing of figures
 + [ ] Bezier curves
 + [ ] Layer support
-+ [ ] Animated image support
++ [x] Animated image support
 + [ ] Add text support
-+ [ ] Rewrite codecs
++ [x] Rewrite codecs
 + [ ] Optimize backups
 + [ ] Symmetric freehand drawing for Y-axis (https://www.piskelapp.com/p/create/sprite)
 + [ ] Preview of previous backups

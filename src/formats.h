@@ -18,6 +18,7 @@ typedef enum
 } GpaintFormatError;
 
 extern GQuark gpaint_format_error_quark (void);
+
 #define GPAINT_FORMAT_ERROR gpaint_format_error_quark ()
 
 typedef struct
@@ -38,7 +39,7 @@ static const struct
 } gpaint_formats[] =
   {
     { .extensions = { "png", NULL }, .codec_id = AV_CODEC_ID_PNG },
-    /* { .extensions = { "jpeg", NULL }, .codec_id = AV_CODEC_ID_JPEGLS }, */
+    { .extensions = { "jpeg", NULL }, .codec_id = AV_CODEC_ID_JPEGLS },
     { .extensions = { "tiff", NULL }, .codec_id = AV_CODEC_ID_TIFF },
     { .extensions = { "gif", NULL }, .codec_id = AV_CODEC_ID_GIF },
     { .extensions = { "bmp", NULL }, .codec_id = AV_CODEC_ID_BMP },
@@ -46,40 +47,6 @@ static const struct
     { .extensions = { "mp4", NULL }, .codec_id = AV_CODEC_ID_H264 },
     { .extensions = { "webp", NULL }, .codec_id = AV_CODEC_ID_WEBP },
   };
-
-// Map cairo format to AVPixelFormat
-static inline enum AVPixelFormat
-get_target_pix_fmt (enum AVCodecID codec_id, cairo_format_t format)
-{
-  /* const enum AVPixelFormat *pix_fmts = codec->pix_fmts; */
-  /* if (pix_fmts) { */
-  /*     printf("Supported pixel formats:\n"); */
-  /*     for (int i = 0; pix_fmts[i] != AV_PIX_FMT_NONE; i++) { */
-  /*         printf("  %s\n", av_get_pix_fmt_name(pix_fmts[i])); */
-  /*     } */
-  /* } else { */
-  /*     printf("No specific pixel formats supported.\n"); */
-  /* } */
-
-  switch (codec_id)
-    {
-    case AV_CODEC_ID_BMP:
-      return AV_PIX_FMT_BGRA;
-
-    case AV_CODEC_ID_AV1:
-      return AV_PIX_FMT_YUV444P;
-      // TODO
-    case AV_CODEC_ID_GIF:
-      return AV_PIX_FMT_RGB8;
-    case AV_CODEC_ID_JPEG2000:
-    case AV_CODEC_ID_MJPEG:
-    case AV_CODEC_ID_JPEGLS:
-    case AV_CODEC_ID_JPEGXL:
-      return AV_PIX_FMT_RGB24; // JPEG doesn't support alpha
-    default:
-      return AV_PIX_FMT_RGBA;
-    }
-}
 
 gboolean
 save_surfaces_with_ffmpeg (const char         *filename,

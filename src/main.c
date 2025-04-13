@@ -103,7 +103,7 @@ cut_rectangle (cairo_surface_t *src,
                                                       rect->width, rect->height);
   if (cairo_surface_status (dest) != CAIRO_STATUS_SUCCESS)
     {
-      fprintf (stderr, "Failed to create destination surface.\n");
+      g_warning ("Failed to create destination surface.\n");
       return NULL;
     }
 
@@ -613,6 +613,27 @@ on_selectall (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   set_can_copy_surface (state);
 }
 
+static void
+on_zoom_in (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  AppState *state = (AppState *) user_data;
+  zoom_in (NULL, state);
+}
+
+static void
+on_zoom_out (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  AppState *state = (AppState *) user_data;
+  zoom_out (NULL, state);
+}
+
+static void
+on_zoom_reset (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  AppState *state = (AppState *) user_data;
+  zoom_reset (NULL, state);
+}
+
 ////
 static const GActionEntry file_actions[] = {
   { "new", on_new_file, NULL, NULL, NULL },
@@ -636,6 +657,11 @@ static const GActionEntry edit_actions[] = {
 static const GActionEntry view_actions[] = {
   { "showgrid", on_toggle_show_grid, NULL, "false", NULL },
   { "antialiasing", on_toggle_antialiasing, NULL, "false", NULL },
+
+  // TODO
+  { "zoomin",    on_zoom_in,    NULL, NULL, NULL },
+  { "zoomout",   on_zoom_out,   NULL, NULL, NULL },
+  { "zoomreset", on_zoom_reset, NULL, NULL, NULL },
 };
 
 /* static const GActionEntry image_actions[] = */
@@ -662,7 +688,12 @@ static const struct
     { "app.selectall", { "<Primary>a", NULL } },
 
     { "app.undo", { "<Primary>z", NULL } },
-    { "app.redo", { "<Primary>y", NULL } }
+    { "app.redo", { "<Primary>y", NULL } },
+
+    { "app.zoomin",    { "<Primary>plus", NULL } },
+    { "app.zoomin",    { "<Primary>equal", NULL } }, // TODO
+    { "app.zoomout",   { "<Primary>minus", NULL } },
+    { "app.zoomreset", { "<Primary>0", NULL } },
   };
 // clang-format on
 
@@ -716,9 +747,9 @@ update_cursor_position (AppState *state, double x, double y)
   char image_info[256];
 
   if (color_depth)
-    snprintf (image_info, sizeof (image_info), "%d×%d×%d", width, height, color_depth);
+    g_snprintf (image_info, sizeof (image_info), "%d×%d×%d", width, height, color_depth);
   else
-    snprintf (image_info, sizeof (image_info), "%d×%d", width, height);
+    g_snprintf (image_info, sizeof (image_info), "%d×%d", width, height);
 
   gtk_label_set_text (GTK_LABEL (state->image_info), image_info);
 
@@ -736,7 +767,7 @@ update_cursor_position (AppState *state, double x, double y)
   else
     {
       gchar position[256];
-      snprintf (position, sizeof (position), "[%d, %d]", MIN (px, width - 1), MIN (py, height - 1));
+      g_snprintf (position, sizeof (position), "[%d, %d]", MIN (px, width - 1), MIN (py, height - 1));
       gtk_label_set_text (GTK_LABEL (state->current_position), position);
     }
 
@@ -1281,6 +1312,16 @@ on_save_response (GObject *source_object, GAsyncResult *res, gpointer user_data)
   g_autofree gchar *path = g_file_get_path (file);
   save_image (path, state->main_surface, 1, NULL);
 
+  GList surfaces =
+    {
+      .data = state->main_surface,
+      .next = NULL,
+      .prev = NULL,
+    };
+
+  for (size_t i = 0; i < G_N_ELEMENTS (gpaint_formats); i++)
+    save_surfaces_with_ffmpeg (g_strdup_printf("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, NULL);
+
   // TODO gtk_window_destroy (GTK_WINDOW (dialog));
 }
 
@@ -1539,7 +1580,6 @@ create_toolbar_grid (AppState *state)
   gtk_box_append (GTK_BOX (vbox), state->width_selector);
   gtk_box_append (GTK_BOX (vbox), state->fill_selector);
   gtk_box_append (GTK_BOX (vbox), state->eraser_size_selector);
-  gtk_box_append (GTK_BOX (vbox), create_dropdown_button ()); // TODO
   return vbox;
 }
 
@@ -1631,7 +1671,7 @@ create_view_toolbar (GtkApplication *app, AppState *state)
 }
 
 static void
-create_menus (GtkApplication *app, GtkWindow *window, GtkWidget *header_bar, AppState *state)
+create_menus (GtkApplication *app, GtkWidget *header_bar, AppState *state)
 {
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_file_toolbar (app, state));
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_edit_toolbar (app, state));
@@ -1917,13 +1957,18 @@ on_surface_selected (gpointer TODO, cairo_surface_t *surface, gpointer user_data
 static void
 activate (GtkApplication *app, AppState *state)
 {
+#if HAS_ADWAITA
+  GtkWidget *window = adw_window_new ();
+  gtk_window_set_application (GTK_WINDOW (window), app); // TODO
+#else
   GtkWidget *window = gtk_application_window_new (app); // Must be freed
+#endif
   state->window = window;
   gtk_window_set_title (GTK_WINDOW (window), "Paint");
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
 
   GtkWidget *header = gtk_header_bar_new ();
-  gtk_window_set_titlebar (GTK_WINDOW (window), header);
+  // TODO gtk_window_set_titlebar (GTK_WINDOW (window), header);
 
   gtk_header_bar_pack_end (GTK_HEADER_BAR (header), create_zoom_box (state));
 
@@ -2035,12 +2080,22 @@ activate (GtkApplication *app, AppState *state)
   }
 
   GtkWidget *main_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+
+#if HAS_ADWAITA
+  gtk_box_append (GTK_BOX (main_vbox), header);
+#endif
+
   gtk_box_append (GTK_BOX (main_vbox), content_hbox);
   gtk_box_append (GTK_BOX (main_vbox), hframe);
 
+#if HAS_ADWAITA
+  adw_window_set_content (ADW_WINDOW (window), main_vbox);
+#else
+  gtk_window_set_titlebar (GTK_WINDOW (window), header);
   gtk_window_set_child (GTK_WINDOW (window), main_vbox);
+#endif
 
-  create_menus (app, GTK_WINDOW (window), header, state);
+  create_menus (app, header, state);
   update_cursor (state);
   gtk_window_present (GTK_WINDOW (window));
   update_cursor_position (state, -1, -1);
@@ -2049,11 +2104,12 @@ activate (GtkApplication *app, AppState *state)
   {
     const GActionEntry *actions;
     size_t count;
-  } entries[] = {
-    { .actions = file_actions, G_N_ELEMENTS (file_actions) },
-    { .actions = edit_actions, G_N_ELEMENTS (edit_actions) },
-    { .actions = view_actions, G_N_ELEMENTS (view_actions) },
-  };
+  } entries[] =
+    {
+      { .actions = file_actions, G_N_ELEMENTS (file_actions) },
+      { .actions = edit_actions, G_N_ELEMENTS (edit_actions) },
+      { .actions = view_actions, G_N_ELEMENTS (view_actions) },
+    };
 
   for (size_t i = 0; i < G_N_ELEMENTS (entries); i++)
     g_action_map_add_action_entries (G_ACTION_MAP (app), entries[i].actions, entries[i].count, state);

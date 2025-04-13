@@ -7,6 +7,40 @@
 
 #include "formats.h"
 
+// Map cairo format to AVPixelFormat
+static inline enum AVPixelFormat
+get_target_pix_fmt (enum AVCodecID codec_id, cairo_format_t format)
+{
+  /* const enum AVPixelFormat *pix_fmts = codec->pix_fmts; */
+  /* if (pix_fmts) { */
+  /*     printf("Supported pixel formats:\n"); */
+  /*     for (int i = 0; pix_fmts[i] != AV_PIX_FMT_NONE; i++) { */
+  /*         printf("  %s\n", av_get_pix_fmt_name(pix_fmts[i])); */
+  /*     } */
+  /* } else { */
+  /*     printf("No specific pixel formats supported.\n"); */
+  /* } */
+
+  switch (codec_id)
+    {
+    case AV_CODEC_ID_BMP:
+      return AV_PIX_FMT_BGRA;
+
+    case AV_CODEC_ID_AV1:
+      return AV_PIX_FMT_YUV444P;
+      // TODO
+    case AV_CODEC_ID_GIF:
+      return AV_PIX_FMT_RGB8;
+    case AV_CODEC_ID_JPEG2000:
+    case AV_CODEC_ID_MJPEG:
+    case AV_CODEC_ID_JPEGLS:
+    case AV_CODEC_ID_JPEGXL:
+      return AV_PIX_FMT_RGB24; // JPEG doesn't support alpha
+    default:
+      return AV_PIX_FMT_RGBA;
+    }
+}
+
 // TODO
 static void
 apply_default_background (cairo_surface_t *surface, double r, double g, double b)
@@ -59,7 +93,7 @@ save_surfaces_with_ffmpeg (const char         *filename,
 {
   g_return_val_if_fail (filename && surfaces, FALSE);
 
-  gboolean is_video = (g_list_length (surfaces) > 1);
+  // TODO gboolean is_video = (g_list_length (surfaces) > 1);
   AVFormatContext *fmt_ctx = NULL;
   AVCodecContext *codec_ctx = NULL;
   AVStream *stream = NULL;
@@ -262,7 +296,7 @@ load_image_to_cairo_surface (const char *filename)
     goto cleanup;
 
   AVStream *stream = fmt_ctx->streams[stream_index];
-  AVCodec *codec = avcodec_find_decoder (stream->codecpar->codec_id);
+  const AVCodec *codec = avcodec_find_decoder (stream->codecpar->codec_id);
   AVCodecContext *codec_ctx = avcodec_alloc_context3 (codec);
   avcodec_parameters_to_context (codec_ctx, stream->codecpar);
   avcodec_open2 (codec_ctx, codec, NULL);

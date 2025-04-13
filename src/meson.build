@@ -34,24 +34,7 @@ if adwaita_dep.found()
   gpaint_deps += adwaita_dep
 endif
 
-# # Add format-specific sources if the dependencies are found.
-# if png_dep.found()
-#   gpaint_sources += 'formats/png.c'
-# endif
-# if jpeg_dep.found()
-#   gpaint_sources += 'formats/jpeg.c'
-# endif
-# if tiff_dep.found()
-#   gpaint_sources += 'formats/tiff.c'
-# endif
-# if avif_dep.found()
-#   gpaint_sources += 'formats/avif.c'
-# endif
-# if giflib_dep.found()
-#   gpaint_sources += 'formats/gif.c'
-# endif
-
 executable('gpaint', gpaint_sources,
-  dependencies: gpaint_deps + optional_deps,
+  dependencies: gpaint_deps,
        install: true,
 )
