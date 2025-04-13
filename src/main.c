@@ -4,7 +4,7 @@
 #include <glib/gi18n.h>
 
 #if HAS_ADWAITA
-#include <adwaita.h>
+# include <adwaita.h>
 #endif
 
 #include <gtk/gtk.h>
@@ -23,7 +23,7 @@
 #include "zoom.c"
 
 #ifndef ADW_CHECK_VERSION
-#define ADW_CHECK_VERSION(major, minor, patch) 0
+# define ADW_CHECK_VERSION(major, minor, patch) 0
 #endif
 
 static void update_cursor (AppState *state);
@@ -87,7 +87,7 @@ clear_selection (AppState *state)
 }
 
 // TODO
-static gboolean
+static inline gboolean
 my_dots_in_rect (int x, int y, const GdkRectangle *rect)
 {
   return x >= rect->x && y >= rect->y && x <= rect->x + rect->width && y <= rect->y + rect->height;
