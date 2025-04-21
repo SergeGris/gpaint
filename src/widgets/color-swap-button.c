@@ -2,6 +2,8 @@
 
 #include "gpaint-cairo.h"
 
+#define COLOR_SWAP_BUTTON_SIZE 48
+
 struct _GpaintColorSwapButton
 {
   GtkButton parent_instance;
@@ -51,17 +53,17 @@ gpaint_color_swap_button_init (GpaintColorSwapButton *self)
   for (size_t i = 0; i < G_N_ELEMENTS (squares); i++)
     {
       GtkWidget *square = gtk_drawing_area_new ();
-      gtk_widget_set_size_request (square, 16, 16);
+      gtk_widget_set_size_request (square, COLOR_SWAP_BUTTON_SIZE / 2, COLOR_SWAP_BUTTON_SIZE / 2);
       gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (square), squares[i]->draw_color, self, NULL);
       *squares[i]->square = square;
     }
 
-  gtk_fixed_put (GTK_FIXED (fixed), self->secondary_square, 8, 8);
+  gtk_fixed_put (GTK_FIXED (fixed), self->secondary_square, COLOR_SWAP_BUTTON_SIZE / 4, COLOR_SWAP_BUTTON_SIZE / 4);
   gtk_fixed_put (GTK_FIXED (fixed), self->primary_square, 0, 0);
 
   gtk_widget_set_halign (GTK_WIDGET (self), GTK_ALIGN_CENTER);
   gtk_widget_set_valign (GTK_WIDGET (self), GTK_ALIGN_CENTER);
-  gtk_widget_set_size_request (GTK_WIDGET (self), 32, 32);
+  gtk_widget_set_size_request (GTK_WIDGET (self), COLOR_SWAP_BUTTON_SIZE, COLOR_SWAP_BUTTON_SIZE);
   gtk_button_set_child (GTK_BUTTON (self), fixed);
 
   g_signal_connect (self, "clicked", G_CALLBACK (gpaint_color_swap_button_clicked), NULL);
@@ -74,13 +76,19 @@ gpaint_color_swap_button_class_init (GpaintColorSwapButtonClass *klass)
 }
 
 GtkWidget *
-gpaint_color_swap_button_new (const GdkRGBA *(*get_primary_color) (gpointer user_data), const GdkRGBA *(*get_secondary_color) (gpointer user_data), void (*swap_buttons) (gpointer user_data), gpointer user_data)
+gpaint_color_swap_button_new (
+    const GdkRGBA *(*get_primary_color) (gpointer user_data),
+    const GdkRGBA *(*get_secondary_color) (gpointer user_data),
+    void (*swap_buttons) (gpointer user_data),
+    gpointer user_data)
 {
-  GpaintColorSwapButton *button = (GpaintColorSwapButton *) g_object_new (GPAINT_COLOR_SWAP_BUTTON_TYPE, NULL);
+  GpaintColorSwapButton *button = (GpaintColorSwapButton *) g_object_new (
+      GPAINT_COLOR_SWAP_BUTTON_TYPE, NULL);
   button->get_primary_color = get_primary_color;
   button->get_secondary_color = get_secondary_color;
   button->swap_buttons = swap_buttons;
   button->user_data = user_data;
+  gtk_button_set_has_frame (GTK_BUTTON (button), FALSE);
   return GTK_WIDGET (button);
 }
 
@@ -94,53 +102,9 @@ gpaint_color_swap_button_update_colors (GpaintColorSwapButton *self)
 static void
 draw_color (cairo_t *cr, gint width, gint height, const GdkRGBA *color)
 {
-  const GdkRectangle rect = { 0, 0, width, height };
-  draw_colored_square (cr, color, 0, 0, width, height, 4.0);
-  /* if (color->alpha == 1.0) */
-  /*   { */
-  /*     cairo_save (cr); */
-  /*     gdk_cairo_set_source_rgba (cr, color); */
-  /*     cairo_rectangle (cr, 0, 0, width, height); */
-  /*     cairo_fill (cr); */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     // TODO */
-  /*     cairo_save (cr); */
-  /*     cairo_scale (cr, 2, 2); */
-  /*     cairo_set_source_rgb (cr, 0.4, 0.4, 0.4); */
-  /*     cairo_rectangle (cr, 0, 0, width, height); */
-  /*     cairo_fill (cr); */
-
-  /*     cairo_new_path (cr); */
-  /*     const gdouble dash[] = { 1.0, 1.0 }; */
-  /*     cairo_set_dash (cr, dash, 1, 0); */
-  /*     cairo_set_line_width (cr, 1.0); */
-  /*     cairo_set_source_rgb (cr, 0.7, 0.7, 0.7); */
-
-  /*     for (gint y = 0; y < height; y++) */
-  /*       { */
-  /*         gdouble x0, x1, y0, y1; */
-
-  /*         x0 = (y & 1); */
-  /*         x1 = width; */
-  /*         y0 = y1 = y + 0.5; */
-
-  /*         cairo_move_to (cr, x0, y0); */
-  /*         cairo_line_to (cr, x1, y1); */
-  /*       } */
-
-  /*     cairo_stroke (cr); */
-  /*     cairo_restore (cr); */
-
-  /*     /\* cairo_save (cr); *\/ */
-  /*     /\* cairo_rectangle (cr, 0, 0, width, height); *\/ */
-  /*     /\* cairo_stroke (cr); *\/ */
-  /*     /\* cairo_restore (cr); *\/ */
-  /*   } */
-
-  const GdkRGBA border = { 0.5, 0.5, 0.5, 1.0 };
-  const gdouble border_width = 2.0;
+  draw_colored_square (cr, color, 0, 0, width, height, 12.0);
+  const GdkRGBA border = { 0.2, 0.2, 0.2, 1.0 };
+  const gdouble border_width = 1.0;
   cairo_save (cr);
   gdk_cairo_set_source_rgba (cr, &border);
   cairo_set_line_width (cr, border_width);
@@ -150,15 +114,15 @@ draw_color (cairo_t *cr, gint width, gint height, const GdkRGBA *color)
 }
 
 static void
-draw_primary_color (GtkDrawingArea *area, cairo_t *cr, gint width, gint height, gpointer data)
+draw_primary_color (GtkDrawingArea *area, cairo_t *cr, gint width, gint height, gpointer user_data)
 {
-  GpaintColorSwapButton *self = GPAINT_COLOR_SWAP_BUTTON (data);
+  GpaintColorSwapButton *self = GPAINT_COLOR_SWAP_BUTTON (user_data);
   draw_color (cr, width, height, self->get_primary_color (self->user_data));
 }
 
 static void
-draw_secondary_color (GtkDrawingArea *area, cairo_t *cr, gint width, gint height, gpointer data)
+draw_secondary_color (GtkDrawingArea *area, cairo_t *cr, gint width, gint height, gpointer user_data)
 {
-  GpaintColorSwapButton *self = GPAINT_COLOR_SWAP_BUTTON (data);
+  GpaintColorSwapButton *self = GPAINT_COLOR_SWAP_BUTTON (user_data);
   draw_color (cr, width, height, self->get_secondary_color (self->user_data));
 }

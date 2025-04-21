@@ -1,11 +1,12 @@
+
 #include "border-widget.h"
 
 struct _GpaintBorderWidget
 {
   GtkWidget parent_instance;
   GtkWidget *child;
-  guint border_width;
   GdkRGBA border_color;
+  int border_width;
 };
 
 struct _GpaintBorderWidgetClass
@@ -32,13 +33,7 @@ gpaint_border_widget_dispose (GObject *object)
 }
 
 static void
-gpaint_border_widget_measure (GtkWidget *widget,
-                              GtkOrientation orientation,
-                              gint for_size,
-                              gint *minimum,
-                              gint *natural,
-                              gint *minimum_baseline,
-                              gint *natural_baseline)
+gpaint_border_widget_measure (GtkWidget *widget, GtkOrientation orientation, gint for_size, gint *minimum, gint *natural, gint *minimum_baseline, gint *natural_baseline)
 {
   GpaintBorderWidget *self = GPAINT_BORDER_WIDGET (widget);
   gint child_min = 0, child_nat = 0;
@@ -51,21 +46,19 @@ gpaint_border_widget_measure (GtkWidget *widget,
 }
 
 static void
-gpaint_border_widget_size_allocate (GtkWidget *widget,
-                                    int width,
-                                    int height,
-                                    int baseline)
+gpaint_border_widget_size_allocate (GtkWidget *widget, int width, int height, int baseline)
 {
   GpaintBorderWidget *self = GPAINT_BORDER_WIDGET (widget);
 
   if (self->child && gtk_widget_get_visible (self->child))
     {
-      GtkAllocation child_alloc = {
-        .x = 0,
-        .y = 0,
-        .width = MAX (width - 2 * self->border_width, 0),
-        .height = MAX (height - 2 * self->border_width, 0)
-      };
+      const GtkAllocation child_alloc =
+        {
+          .x = 0,
+          .y = 0,
+          .width = MAX (width - 2 * self->border_width, 0),
+          .height = MAX (height - 2 * self->border_width, 0),
+        };
 
       gtk_widget_size_allocate (self->child, &child_alloc, -1);
     }
@@ -140,8 +133,7 @@ gpaint_border_widget_set_border_width (GpaintBorderWidget *self, guint width)
 }
 
 void
-gpaint_border_widget_set_border_color (GpaintBorderWidget *self,
-                                       const GdkRGBA *color)
+gpaint_border_widget_set_border_color (GpaintBorderWidget *self, const GdkRGBA *color)
 {
   self->border_color = *color;
   gtk_widget_queue_draw (GTK_WIDGET (self));

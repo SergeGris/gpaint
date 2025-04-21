@@ -1,23 +1,6 @@
 #include <gtk/gtk.h>
 
-typedef struct
-{
-  const char *image_path; /* Image file path */
-  gint value;
-} ValueItem;
-
-#define VALUE_TYPE_SELECTOR (value_selector_get_type ())
-G_DECLARE_FINAL_TYPE (ValueSelector, value_selector, VALUE, SELECTOR, GtkBox)
-
-struct _ValueSelector
-{
-  GtkBox parent_instance;
-  GtkDropDown *dropdown;
-  GtkStringList *model;
-  GArray *values;
-  void (*value_changed_callback) (gpointer user_data, gint value);
-  gpointer user_data;
-};
+#include "value-selector.h"
 
 G_DEFINE_TYPE (ValueSelector, value_selector, GTK_TYPE_BOX)
 
@@ -26,7 +9,8 @@ static void
 factory_setup (GtkSignalListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
 {
   GtkWidget *image = gtk_image_new ();
-  // TODO gtk_image_set_pixel_size (GTK_IMAGE (image), 32); /* Set image size */
+  // TODO gtk_image_set_pixel_size (GTK_IMAGE (image), 32); /* Set image size
+  // */
   gtk_list_item_set_child (list_item, image);
 }
 
@@ -35,7 +19,8 @@ static void
 factory_bind (GtkSignalListItemFactory *factory, GtkListItem *list_item, gpointer user_data)
 {
   GtkWidget *image = gtk_list_item_get_child (list_item);
-  const char *path = gtk_string_object_get_string (GTK_STRING_OBJECT (gtk_list_item_get_item (list_item)));
+  const char *path = gtk_string_object_get_string (
+      GTK_STRING_OBJECT (gtk_list_item_get_item (list_item)));
   gtk_image_set_from_file (GTK_IMAGE (image), path);
 }
 
@@ -65,7 +50,8 @@ value_selector_init (ValueSelector *selector)
   g_signal_connect (factory, "bind", G_CALLBACK (factory_bind), NULL);
 
   /* Create dropdown with image factory */
-  selector->dropdown = GTK_DROP_DOWN (gtk_drop_down_new (G_LIST_MODEL (selector->model), NULL));
+  selector->dropdown = GTK_DROP_DOWN (
+      gtk_drop_down_new (G_LIST_MODEL (selector->model), NULL));
   gtk_drop_down_set_factory (selector->dropdown, factory);
   gtk_box_append (GTK_BOX (selector), GTK_WIDGET (selector->dropdown));
   g_signal_connect (selector->dropdown, "notify::selected", G_CALLBACK (on_dropdown_notify_selected), selector);
@@ -102,7 +88,8 @@ value_selector_new (const ValueItem *items, guint num_items, void (*callback) (g
     }
   g_ptr_array_add (paths, NULL);
 
-  selector->model = GTK_STRING_LIST (gtk_string_list_new ((const gchar *const *) paths->pdata));
+  selector->model = GTK_STRING_LIST (
+      gtk_string_list_new ((const gchar *const *) paths->pdata));
   g_ptr_array_unref (paths);
 
   gtk_drop_down_set_model (selector->dropdown, G_LIST_MODEL (selector->model));
@@ -110,7 +97,8 @@ value_selector_new (const ValueItem *items, guint num_items, void (*callback) (g
     gtk_drop_down_set_selected (selector->dropdown, 0);
 
   // TODO
-  gtk_widget_set_size_request (GTK_WIDGET (selector->dropdown), 64, 32); // Set appropriate size for images
+  gtk_widget_set_size_request (GTK_WIDGET (selector->dropdown), 64,
+                               32); // Set appropriate size for images
 
   return GTK_WIDGET (selector);
 }

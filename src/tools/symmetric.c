@@ -7,7 +7,7 @@ static void motion_symmetric_freehand_handler (AppState *state, gint x, gint y);
 const Tool global_symmetric_freehand_tool = {
   .type = TOOL_SYMMETRIC_FREEHAND,
   .icon = &freehand_data,
-  .cursor = NULL,
+  .cursor_name = NULL,
   .draw_handler = draw_symmetric_freehand_handler,
   .motion_handler = motion_symmetric_freehand_handler,
   .is_drawing = TRUE,

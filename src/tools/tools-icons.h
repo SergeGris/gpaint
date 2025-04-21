@@ -4,6 +4,7 @@
 extern const struct raw_bitmap freehand_data;
 extern const struct raw_bitmap line_data;
 extern const struct raw_bitmap rectangle_data;
+extern const struct raw_bitmap triangle_data;
 extern const struct raw_bitmap ellipse_data;
 extern const struct raw_bitmap eraser_data;
 extern const struct raw_bitmap picker_data;

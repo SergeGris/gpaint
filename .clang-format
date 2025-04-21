@@ -5,6 +5,34 @@ BinPackParameters: false
 SpaceAfterCStyleCast: true
 PointerAlignment: Right
 ColumnLimit: 0
+AlignArrayOfStructures: Left
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+BreakBeforeBraces: GNU
+
+# BreakBeforeBraces: Custom
+# BraceWrapping:
+#   AfterClass: true
+#   SplitEmptyFunction: false
+#   AfterControlStatement: Always
+#   AfterEnum: true
+#   AfterFunction: true
+#   AfterNamespace: true
+#   AfterStruct: true
+#   AfterUnion: true
+#   AfterExternBlock: true
+#   BeforeCatch: true
+#   BeforeElse: true
+#   BeforeWhile: true
+#   IndentBraces: true
+#   SplitEmptyRecord: false
+#   SplitEmptyNamespace: false
+# #  AfterCaseLabel: true
+
+# AlignAfterOpenBracket: AlwaysBreak
+# BracedInitializerIndentWidth: 2
 
 # BasedOnStyle: GNU
 # ColumnLimit: 240

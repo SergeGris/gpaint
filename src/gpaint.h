@@ -33,8 +33,15 @@ typedef struct
   GtkWidget *btn;
 } ToolEntry;
 
+// TODO
+/* typedef struct */
+/* { */
+/*   uint8_t red, green, blue, alpha; */
+/* } GpaintRGBA; */
+
 typedef struct
 {
+  GtkApplication *application;
   GtkWidget *window;
   GtkWidget *drawing_area;
   GtkWidget *color_btn;
@@ -51,12 +58,12 @@ typedef struct
 
   GtkWidget *layers;
   GAction *antialiasing_action;
-  cairo_antialias_t antialiasing;
   GAction *show_grid_action;
   GAction *cut_action;
   GAction *copy_action;
   GtkWidget *scrolled;
   GtkAdjustment *vadj, *hadj;
+  cairo_antialias_t antialiasing;
 
   gboolean smooth_preview;
 
@@ -87,6 +94,7 @@ typedef struct
   gboolean is_drawing;
   gdouble zoom_level;
   const Tool *tool;
+  GdkCursor *cursors[32]; // TODO
   gdouble width;
   FillType fill_type;
   gdouble eraser_size;
@@ -102,6 +110,8 @@ typedef struct
 #include "gpaint-cairo.h"
 
 #define GPAINT_GDK_RGBA_GREY(a) ((GdkRGBA) { a, a, a, 1.0 })
+#define GPAINT_GDK_TRANSPARENT ((GdkRGBA) { 0.0, 0.0, 0.0, 0.0 })
+#define GPAINT_GDK_BLACK ((GdkRGBA) { 0.0, 0.0, 0.0, 1.0 })
 #define GPAINT_TRANSPARENT_FIRST_COLOR 0.8
 #define GPAINT_TRANSPARENT_SECOND_COLOR 0.7
 
@@ -123,7 +133,8 @@ gpaint_get_current_surface (AppState *state)
 
 // TODO
 /* static void */
-/* set_action_enabled_by_name (GActionMap *action_map, const char *action_name, gboolean enabled) */
+/* set_action_enabled_by_name (GActionMap *action_map, const char *action_name,
+ * gboolean enabled) */
 /* { */
 /*   GAction *action = g_action_map_lookup_action (action_map, action_name); */
 /*   if (action) */

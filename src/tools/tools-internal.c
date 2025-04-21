@@ -20,7 +20,8 @@ draw_line_with_width_and_color (cairo_surface_t *surface, gint x0, gint y0, gint
   cairo_move_to (cr, x0 + 0.5, y0 + 0.5);
   cairo_line_to (cr, x1 + 0.5, y1 + 0.5);
   gdk_cairo_set_source_rgba (cr, color);
-  // cairo_set_antialias(cr, CAIRO_ANTIALIAS_BILINEAR); // Enable bilinear anti-aliasing
+  // cairo_set_antialias(cr, CAIRO_ANTIALIAS_BILINEAR); // Enable bilinear
+  // anti-aliasing
   cairo_stroke (cr);
   cairo_destroy (cr);
 
@@ -38,13 +39,14 @@ draw_line_with_width_and_color (cairo_surface_t *surface, gint x0, gint y0, gint
 GdkRGBA
 get_pixel_color (const guchar *data, gint x, gint y, gint stride)
 {
-  /* CAIRO_FORMAT_ARGB32 stores pixels in BGRA order on little-endian systems */
+  /* CAIRO_FORMAT_ARGB32 stores pixels in BGRA order on little-endian systems
+   */
   gint idx = y * stride + x * 4;
   GdkRGBA color = {
-    .red = (gfloat) (data[idx + 2] / 255.0f),
-    .green = (gfloat) (data[idx + 1] / 255.0f),
-    .blue = (gfloat) (data[idx + 0] / 255.0f),
-    .alpha = (gfloat) (data[idx + 3] / 255.0f),
+    .red = (gfloat) data[idx + 2] / 255.0f,
+    .green = (gfloat) data[idx + 1] / 255.0f,
+    .blue = (gfloat) data[idx + 0] / 255.0f,
+    .alpha = (gfloat) data[idx + 3] / 255.0f,
   };
   return color;
 }

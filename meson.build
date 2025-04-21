@@ -1,12 +1,15 @@
 project('gpaint', 'c',
           version: '0.1.0',
     meson_version: '>= 1.0.0',
-  default_options: [ 'warning_level=2', 'werror=false', 'c_std=gnu11' ],
+  default_options: [ 'warning_level=2', 'werror=false', 'c_std=gnu99' ],
 )
 
 # TODO i18n = import('i18n')
 gnome = import('gnome')
 cc = meson.get_compiler('c')
+
+source_root = meson.current_source_dir()
+project_build_root = meson.project_build_root()
 
 config_h = configuration_data()
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
@@ -15,10 +18,10 @@ config_h.set_quoted('LOCALEDIR', get_option('prefix') / get_option('localedir'))
 
 # libadwaita (optional)
 adwaita_dep = dependency('libadwaita-1', required: false)
-config_h.set('HAS_ADWAITA', adwaita_dep.found() ? 1 : 0)
+config_h.set('HAVE_ADWAITA', adwaita_dep.found() ? 1 : 0)
 
 configure_file(output: 'config.h', configuration: config_h)
-add_project_arguments(['-I' + meson.project_build_root(), '-DHAS_CONFIG_H=1'], language: 'c')
+add_project_arguments(['-I' + project_build_root, '-DHAVE_CONFIG_H=1'], language: 'c') # TODO
 
 project_c_args = []
 test_c_args = [
@@ -73,7 +76,7 @@ test_c_args = [
   '-Wuninitialized',
   '-Wunused',
   '-fno-strict-aliasing',
-  ['-Werror=format-security', '-Werror=format=2'],
+# TODO  ['-Werror=format-security', '-Werror=format=2'],
 ]
 if get_option('buildtype') != 'plain'
   test_c_args += '-fstack-protector-strong'
@@ -94,3 +97,11 @@ gnome.post_install(
     gtk_update_icon_cache: true,
   update_desktop_database: true,
 )
+
+# TODO
+summary({
+  'Source code location': source_root,
+  'Project build root': project_build_root,
+  'Compiler': cc.get_id(),
+  'Extra compiler warnings': project_c_args,
+}, section: 'Build')

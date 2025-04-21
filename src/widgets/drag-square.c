@@ -67,15 +67,13 @@ drag_update (GtkGestureDrag *gesture, gdouble x, gdouble y, gpointer user_data)
 
   if (tx != 0)
     {
-      snprintf (buffer, sizeof (buffer), "W: %d (%c%d)",
-                width + tx, "+-"[tx < 0], abs (tx));
+      g_snprintf (buffer, sizeof (buffer), "W: %d (%c%d)", width + tx, "+-"[tx < 0], abs (tx));
       gtk_label_set_text (GTK_LABEL (self->width_label), buffer);
     }
 
   if (ty != 0)
     {
-      snprintf (buffer, sizeof (buffer), "H: %d (%c%d)",
-                cairo_image_surface_get_height (state->main_surface) + ty, "+-"[ty < 0], abs (ty));
+      g_snprintf (buffer, sizeof (buffer), "H: %d (%c%d)", cairo_image_surface_get_height (state->main_surface) + ty, "+-"[ty < 0], abs (ty));
       gtk_label_set_text (GTK_LABEL (self->height_label), buffer);
     }
 }
@@ -138,6 +136,7 @@ gpaint_drag_tracker_new (ResizeCallback on_resize, gint dirx, gint diry, gpointe
 {
   g_assert (abs (dirx) <= 1);
   g_assert (abs (diry) <= 1);
+  g_assert (dirx != 0 || diry != 0);
 
   GpaintDragTracker *drag_tracker = g_object_new (GPAINT_TYPE_DRAG_TRACKER, NULL);
   drag_tracker->on_resize = on_resize;

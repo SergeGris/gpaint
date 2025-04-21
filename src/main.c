@@ -1,25 +1,28 @@
 
+#if HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <glib/gi18n.h>
 
-#if HAS_ADWAITA
-# include <adwaita.h>
+#if HAVE_ADWAITA
+#include <adwaita.h>
 #endif
 
 #include <gtk/gtk.h>
 
-#include "border-widget.h"
-#include "color-swap-button.h"
-#include "drag-square.h"
+#include <locale.h>
+
 #include "formats.h"
 #include "gpaint.h"
-#include "number-entry.c"
 #include "tools/tools.h"
-#include "value-selector.c"
 
-#include "layers.c"
-#include "select.c"
+#include "widgets/border-widget.h"
+#include "widgets/color-swap-button.h"
+#include "widgets/drag-square.h"
+#include "widgets/number-entry.h"
+#include "widgets/value-selector.h"
+
 #include "zoom.c"
 
 #ifndef ADW_CHECK_VERSION
@@ -52,9 +55,7 @@ commit_selection (AppState *state)
 
   cairo_t *cr = cairo_create (state->main_surface);
   cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
-  cairo_set_source_surface (cr, state->selected_surface,
-                            state->selected_rect.x,
-                            state->selected_rect.y);
+  cairo_set_source_surface (cr, state->selected_surface, state->selected_rect.x, state->selected_rect.y);
   cairo_paint (cr);
   cairo_destroy (cr);
 
@@ -63,9 +64,10 @@ commit_selection (AppState *state)
   memset (&state->selected_rect, 0, sizeof (state->selected_rect));
   state->has_selection = FALSE;
   set_can_copy_surface (state);
+  gtk_widget_queue_draw (state->drawing_area); // TODO?
 }
 
-void
+static inline void
 clear_selection (AppState *state)
 {
   if (!state->has_selection)
@@ -93,14 +95,11 @@ my_dots_in_rect (int x, int y, const GdkRectangle *rect)
   return x >= rect->x && y >= rect->y && x <= rect->x + rect->width && y <= rect->y + rect->height;
 }
 
-cairo_surface_t *
-cut_rectangle (cairo_surface_t *src,
-               const GdkRectangle *rect,
-               const GdkRGBA *color)
+static cairo_surface_t *
+cut_rectangle (cairo_surface_t *src, const GdkRectangle *rect, const GdkRGBA *color)
 {
   // Create a new surface for the extracted region.
-  cairo_surface_t *dest = cairo_image_surface_create (cairo_image_surface_get_format (src),
-                                                      rect->width, rect->height);
+  cairo_surface_t *dest = cairo_image_surface_create (cairo_image_surface_get_format (src), rect->width, rect->height);
   if (cairo_surface_status (dest) != CAIRO_STATUS_SUCCESS)
     {
       g_warning ("Failed to create destination surface.\n");
@@ -114,7 +113,8 @@ cut_rectangle (cairo_surface_t *src,
   cairo_paint (cr_dest);
   cairo_destroy (cr_dest);
 
-  // Now fill the rectangle area in the source surface with the specified color.
+  // Now fill the rectangle area in the source surface with the specified
+  // color.
   cairo_t *cr_src = cairo_create (src);
   cairo_set_operator (cr_src, CAIRO_OPERATOR_SOURCE);
   gdk_cairo_set_source_rgba (cr_src, color);
@@ -150,10 +150,8 @@ motion_handler (GtkEventControllerMotion *ctrl, double x, double y, gpointer use
       state->selected_rect.y = state->selection_start_y + dy;
 
       // Constrain to canvas boundaries
-      state->selected_rect.x = CLAMP (state->selected_rect.x, -state->selected_rect.width,
-                                      cairo_image_surface_get_width (state->main_surface));
-      state->selected_rect.y = CLAMP (state->selected_rect.y, -state->selected_rect.height,
-                                      cairo_image_surface_get_height (state->main_surface));
+      state->selected_rect.x = CLAMP (state->selected_rect.x, -state->selected_rect.width, cairo_image_surface_get_width (state->main_surface));
+      state->selected_rect.y = CLAMP (state->selected_rect.y, -state->selected_rect.height, cairo_image_surface_get_height (state->main_surface));
 
       gtk_widget_queue_draw (state->drawing_area);
     }
@@ -172,7 +170,8 @@ motion_handler (GtkEventControllerMotion *ctrl, double x, double y, gpointer use
         cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 
       // TODO
-      /* if (!g_variant_get_boolean (g_action_get_state (state->antialiasing_action))) */
+      /* if (!g_variant_get_boolean (g_action_get_state
+       * (state->antialiasing_action))) */
       /*   cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE); */
       /* else */
       /*   cairo_set_antialias(cr, CAIRO_ANTIALIAS_DEFAULT); */
@@ -255,8 +254,7 @@ cairo_surface_t* flip_horizontal(cairo_surface_t *surface) {
     int width = cairo_image_surface_get_width(surface);
     int height = cairo_image_surface_get_height(surface);
 
-    cairo_surface_t *flipped = cairo_image_surface_create(
-        cairo_image_surface_get_format(surface), width, height);
+    cairo_surface_t *flipped = cairo_image_surface_create(cairo_image_surface_get_format(surface), width, height);
     cairo_t *cr = cairo_create(flipped);
 
     // Translate to the right edge then scale X by -1
@@ -303,8 +301,7 @@ cairo_surface_t* rotate_surface(cairo_surface_t *surface, double angle_degrees) 
     int new_width = (int)(width * cos_angle + height * sin_angle);
     int new_height = (int)(width * sin_angle + height * cos_angle);
 
-    cairo_surface_t *rotated = cairo_image_surface_create(
-        cairo_image_surface_get_format(surface), new_width, new_height);
+    cairo_surface_t *rotated = cairo_image_surface_create(cairo_image_surface_get_format(surface), new_width, new_height);
     cairo_t *cr = cairo_create(rotated);
 
     // Move the origin to the center of the new surface.
@@ -323,7 +320,8 @@ cairo_surface_t* rotate_surface(cairo_surface_t *surface, double angle_degrees) 
 #endif
 
 /* static void */
-/* on_flip_rotate (GSimpleAction *action, GVariant *parameter, gpointer user_data) */
+/* on_flip_rotate (GSimpleAction *action, GVariant *parameter, gpointer
+ * user_data) */
 /* { */
 /*   AppState *state = (AppState *) user_data; */
 
@@ -336,21 +334,31 @@ cairo_surface_t* rotate_surface(cairo_surface_t *surface, double angle_degrees) 
 /*   adw_dialog_set_follows_content_size (dialog, TRUE); */
 /* #else */
 /*   GtkWidget *window = gtk_window_new (); */
-/*   gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW (state->window)); */
+/*   gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW
+ * (state->window)); */
 /*   gtk_window_set_modal (GTK_WINDOW (window), TRUE); */
 /*   gtk_window_set_title (GTK_WINDOW (window), "Flip/Rotate"); */
 /*   gtk_window_set_resizable (GTK_WINDOW (window), FALSE); */
-/*   gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW (state->window)); */
+/*   gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW
+ * (state->window)); */
 /* #endif */
 
-/*   GtkWidget *flip_vertical = gtk_flip_new_with_label(NULL, "Flip vertical"); */
-/*   GtkWidget *flip_horizontal = gtk_flip_new_with_label_from_widget(GTK_RADIO_BUTTON(flip_vertical), "Flip horizontal"); */
-/*   GtkWidget *rotate_by_angle = gtk_flip_new_with_label_from_widget(GTK_RADIO_BUTTON(flip_horizontal), "Rotate by angle"); */
+/*   GtkWidget *flip_vertical = gtk_flip_new_with_label(NULL, "Flip vertical");
+ */
+/*   GtkWidget *flip_horizontal =
+ * gtk_flip_new_with_label_from_widget(GTK_RADIO_BUTTON(flip_vertical), "Flip
+ * horizontal"); */
+/*   GtkWidget *rotate_by_angle =
+ * gtk_flip_new_with_label_from_widget(GTK_RADIO_BUTTON(flip_horizontal),
+ * "Rotate by angle"); */
 
 /*   // Connect signals */
-/*   g_signal_connect(flip_vertical, "toggled", G_CALLBACK(on_flip_toggled), "Option A"); */
-/*   g_signal_connect(flip_vertical, "toggled", G_CALLBACK(on_flip_toggled), "Option B"); */
-/*   g_signal_connect(rotate_by_angle, "toggled", G_CALLBACK(on_flip_toggled), "Option C"); */
+/*   g_signal_connect(flip_vertical, "toggled", G_CALLBACK(on_flip_toggled),
+ * "Option A"); */
+/*   g_signal_connect(flip_vertical, "toggled", G_CALLBACK(on_flip_toggled),
+ * "Option B"); */
+/*   g_signal_connect(rotate_by_angle, "toggled", G_CALLBACK(on_flip_toggled),
+ * "Option C"); */
 
 /*   // Add radio buttons to the box */
 /*   gtk_box_append(GTK_BOX(box), flip_a); */
@@ -377,16 +385,23 @@ cairo_surface_t* rotate_surface(cairo_surface_t *surface, double angle_degrees) 
 /* } AppAction; */
 
 /* static AppAction file_actions[] = { */
-/*   { "New",  "app.new",  "new",  { "<Primary>n", NULL }, G_CALLBACK (on_new_file) }, */
-/*   { "Open", "app.open", "open", { "<Primary>o", NULL }, G_CALLBACK (on_open_file) }, */
-/*   { "Save", "app.save", "save", { "<Primary>s", NULL }, G_CALLBACK (on_save_file) }, */
-/*   { "Quit", "app.quit", "quit", { "<Primary>q", NULL }, G_CALLBACK (on_quit) }, */
+/*   { "New",  "app.new",  "new",  { "<Primary>n", NULL }, G_CALLBACK
+ * (on_new_file) }, */
+/*   { "Open", "app.open", "open", { "<Primary>o", NULL }, G_CALLBACK
+ * (on_open_file) }, */
+/*   { "Save", "app.save", "save", { "<Primary>s", NULL }, G_CALLBACK
+ * (on_save_file) }, */
+/*   { "Quit", "app.quit", "quit", { "<Primary>q", NULL }, G_CALLBACK (on_quit)
+ * }, */
 /* }; */
 
 /* static AppAction edit_actions[] = { */
-/*   { "Undo", "app.undo", "undo", { "<Primary>z", NULL }, G_CALLBACK (on_undo) }, */
-/*   { "Redo", "app.redo", "redo", { "<Primary>y", NULL }, G_CALLBACK (on_redo) }, */
-/*   { "Resize", "app.resize", "resize", { NULL, NULL }, G_CALLBACK (on_resize) }, */
+/*   { "Undo", "app.undo", "undo", { "<Primary>z", NULL }, G_CALLBACK (on_undo)
+ * }, */
+/*   { "Redo", "app.redo", "redo", { "<Primary>y", NULL }, G_CALLBACK (on_redo)
+ * }, */
+/*   { "Resize", "app.resize", "resize", { NULL, NULL }, G_CALLBACK (on_resize)
+ * }, */
 /* }; */
 
 // TODO handle some shit
@@ -400,14 +415,12 @@ png_write_callback (void *closure, const unsigned char *data, unsigned int lengt
 }
 
 /* Sets the given Cairo surface as an image on the clipboard as PNG data */
-void
+static void
 set_image_to_clipboard (cairo_surface_t *surface, GtkWidget *parent)
 {
   /* Encode the surface as PNG into a memory buffer */
   GByteArray *byte_array = g_byte_array_new ();
-  cairo_status_t status = cairo_surface_write_to_png_stream (surface,
-                                                             png_write_callback,
-                                                             byte_array);
+  cairo_status_t status = cairo_surface_write_to_png_stream (surface, png_write_callback, byte_array);
   if (status != CAIRO_STATUS_SUCCESS)
     {
       g_warning ("Failed to encode Cairo surface to PNG");
@@ -438,7 +451,8 @@ set_image_to_clipboard (cairo_surface_t *surface, GtkWidget *parent)
  * g_input_stream_png_read:
  *   A custom read function that wraps a GInputStream so it can be used by
  *   cairo_image_surface_create_from_png_stream. It reads exactly the requested
- *   number of bytes from the stream, returning CAIRO_STATUS_SUCCESS on success.
+ *   number of bytes from the stream, returning CAIRO_STATUS_SUCCESS on
+ * success.
  */
 static cairo_status_t
 g_input_stream_png_read (void *closure, unsigned char *data, unsigned int length)
@@ -480,13 +494,15 @@ on_image_surface_ready (cairo_surface_t *surface, gpointer user_data)
         cairo_surface_destroy (state->selected_surface);
 
       state->selected_surface = surface;
-      state->selected_rect = (GdkRectangle) { 0, 0, cairo_image_surface_get_width (surface),
-                                              cairo_image_surface_get_height (surface) };
+      state->selected_rect = (GdkRectangle) {
+        gtk_adjustment_get_value (state->hadj) / state->zoom_level,
+        gtk_adjustment_get_value (state->vadj) / state->zoom_level,
+        cairo_image_surface_get_width (surface),
+        cairo_image_surface_get_height (surface),
+      };
       state->has_selection = TRUE;
       set_can_copy_surface (state);
-
       tool_select (state, TOOL_SELECT_RECTANGLE);
-
       gtk_widget_queue_draw (state->drawing_area);
 
       /* cairo_surface_write_to_png(surface, "clipboard_image.png"); */
@@ -505,13 +521,11 @@ on_image_surface_ready (cairo_surface_t *surface, gpointer user_data)
  *   surface from it, then calls on_image_surface_ready with the result.
  */
 static void
-on_clipboard_image_received (GObject *clipboard,
-                             GAsyncResult *res,
-                             gpointer user_data)
+on_clipboard_image_received (GObject *clipboard, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
   const char *mime_type = NULL;
-  GInputStream *stream = gdk_clipboard_read_finish (GDK_CLIPBOARD (clipboard), res, &mime_type, &error);
+  g_autoptr (GInputStream) stream = gdk_clipboard_read_finish (GDK_CLIPBOARD (clipboard), res, &mime_type, &error);
   if (error)
     {
       g_warning ("Error reading clipboard: %s", error->message);
@@ -525,31 +539,27 @@ on_clipboard_image_received (GObject *clipboard,
       on_image_surface_ready (NULL, user_data);
       return;
     }
+
   /* Create a Cairo surface from the PNG data stream. */
   cairo_surface_t *surface = cairo_image_surface_create_from_png_stream (g_input_stream_png_read, stream);
-  g_object_unref (stream);
   on_image_surface_ready (surface, user_data);
 }
 
 /*
  * retrieve_clipboard_image:
- *   Retrieves an image from the clipboard (PNG only in this example) and decodes
- *   it into a Cairo image surface. The resulting surface (or NULL on failure) is
- *   passed to on_image_surface_ready.
+ *   Retrieves an image from the clipboard (PNG only in this example) and
+ * decodes it into a Cairo image surface. The resulting surface (or NULL on
+ * failure) is passed to on_image_surface_ready.
  */
 static void
 retrieve_clipboard_image (GtkWidget *widget, gpointer user_data)
 {
   GdkDisplay *display = gtk_widget_get_display (widget);
   GdkClipboard *clipboard = gdk_display_get_clipboard (display);
-  /* In this example we only support PNG. (Extend here for other MIME types.) */
+  /* In this example we only support PNG. (Extend here for other MIME types.)
+   */
   const char *mime_types[] = { "image/png", NULL };
-  gdk_clipboard_read_async (clipboard,
-                            mime_types,
-                            0,
-                            NULL, /* No GCancellable */
-                            on_clipboard_image_received,
-                            user_data);
+  gdk_clipboard_read_async (clipboard, mime_types, 0, NULL /* No GCancellable */, on_clipboard_image_received, user_data);
 }
 
 static void
@@ -563,8 +573,8 @@ on_cut (GSimpleAction *action, GVariant *parameter, gpointer user_data)
       clear_selection (state);
       gtk_widget_queue_draw (state->drawing_area);
       // Fill original area with background color
-      // fill_rectangle(state->main_surface, &state->selected_rect, state->secondary_color);
-      // clear_selection(state);
+      // fill_rectangle(state->main_surface, &state->selected_rect,
+      // state->secondary_color); clear_selection(state);
     }
 }
 
@@ -636,32 +646,32 @@ on_zoom_reset (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 
 ////
 static const GActionEntry file_actions[] = {
-  { "new", on_new_file, NULL, NULL, NULL },
+  { "new",  on_new_file,  NULL, NULL, NULL },
   { "open", on_open_file, NULL, NULL, NULL },
   { "save", on_save_file, NULL, NULL, NULL },
-  { "quit", on_quit, NULL, NULL, NULL },
+  { "quit", on_quit,      NULL, NULL, NULL },
 };
 
 static const GActionEntry edit_actions[] = {
-  { "undo", on_undo, NULL, NULL, NULL },
-  { "redo", on_redo, NULL, NULL, NULL },
+  { "undo",      on_undo,      NULL, NULL, NULL },
+  { "redo",      on_redo,      NULL, NULL, NULL },
 
-  { "cut", on_cut, NULL, NULL, NULL },
-  { "copy", on_copy, NULL, NULL, NULL },
-  { "paste", on_paste, NULL, NULL, NULL },
+  { "cut",       on_cut,       NULL, NULL, NULL },
+  { "copy",      on_copy,      NULL, NULL, NULL },
+  { "paste",     on_paste,     NULL, NULL, NULL },
   { "selectall", on_selectall, NULL, NULL, NULL },
 
-  { "resize", on_resize, NULL, NULL, NULL },
+  { "resize",    on_resize,    NULL, NULL, NULL },
 };
 
 static const GActionEntry view_actions[] = {
-  { "showgrid", on_toggle_show_grid, NULL, "false", NULL },
+  { "showgrid",     on_toggle_show_grid,    NULL, "false", NULL },
   { "antialiasing", on_toggle_antialiasing, NULL, "false", NULL },
 
   // TODO
-  { "zoomin",    on_zoom_in,    NULL, NULL, NULL },
-  { "zoomout",   on_zoom_out,   NULL, NULL, NULL },
-  { "zoomreset", on_zoom_reset, NULL, NULL, NULL },
+  { "zoomin",       on_zoom_in,             NULL, NULL,    NULL },
+  { "zoomout",      on_zoom_out,            NULL, NULL,    NULL },
+  { "zoomreset",    on_zoom_reset,          NULL, NULL,    NULL },
 };
 
 /* static const GActionEntry image_actions[] = */
@@ -674,26 +684,25 @@ static const GActionEntry view_actions[] = {
 static const struct
 {
   const gchar *action;
-  const gchar *accels[2];
+  const gchar *accels[3]; // TODO Must be NULL sentinel
 } app_accels[] =
   {
-    { "app.new",  { "<Primary>n", NULL } },
-    { "app.open", { "<Primary>o", NULL } },
-    { "app.save", { "<Primary>s", NULL } },
-    { "app.quit", { "<Primary>q", NULL } },
+    { "app.new",  { "<Primary>n" } },
+    { "app.open", { "<Primary>o" } },
+    { "app.save", { "<Primary>s" } },
+    { "app.quit", { "<Primary>q" } },
 
-    { "app.cut",       { "<Primary>x", NULL } },
-    { "app.copy",      { "<Primary>c", NULL } },
-    { "app.paste",     { "<Primary>v", NULL } },
-    { "app.selectall", { "<Primary>a", NULL } },
+    { "app.cut",       { "<Primary>x" } },
+    { "app.copy",      { "<Primary>c" } },
+    { "app.paste",     { "<Primary>v" } },
+    { "app.selectall", { "<Primary>a" } },
 
-    { "app.undo", { "<Primary>z", NULL } },
-    { "app.redo", { "<Primary>y", NULL } },
+    { "app.undo", { "<Primary>z" } },
+    { "app.redo", { "<Primary>y" } },
 
-    { "app.zoomin",    { "<Primary>plus", NULL } },
-    { "app.zoomin",    { "<Primary>equal", NULL } }, // TODO
-    { "app.zoomout",   { "<Primary>minus", NULL } },
-    { "app.zoomreset", { "<Primary>0", NULL } },
+    { "app.zoomin",    { "<Primary>plus", "<Primary>equal" } },
+    { "app.zoomout",   { "<Primary>minus" } },
+    { "app.zoomreset", { "<Primary>0" } },
   };
 // clang-format on
 
@@ -704,46 +713,7 @@ update_cursor_position (AppState *state, double x, double y)
   const int width = cairo_image_surface_get_width (surface);
   const int height = cairo_image_surface_get_height (surface);
 
-  // TODO undocumanted?
-  const cairo_format_t format = cairo_image_surface_get_format (surface);
-  int color_depth = 0;
-
-  switch (format)
-    {
-    case CAIRO_FORMAT_ARGB32:
-      color_depth = 32; // 8 bits for each of 4 channels (Alpha, Red, Green, Blue)
-      break;
-    case CAIRO_FORMAT_RGB24:
-      color_depth = 24; // 8 bits for each of 3 channels (Red, Green, Blue)
-      break;
-    case CAIRO_FORMAT_A8:
-      color_depth = 8; // 8 bits for Alpha only
-      break;
-    case CAIRO_FORMAT_RGB16_565:
-      color_depth = 16; // 5 bits for Red, 6 bits for Green, 5 bits for Blue
-      break;
-    case CAIRO_FORMAT_RGB30:
-      color_depth = 30; // 10 bits for each of 3 channels (Red, Green, Blue)
-      break;
-    case CAIRO_FORMAT_A1:
-      color_depth = 1;
-      break;
-#ifdef CAIRO_FORMAT_RGB96F
-    case CAIRO_FORMAT_RGB96F: // TODO
-      color_depth = 96;
-      break;
-#endif
-#ifdef CAIRO_FORMAT_RGBA128F
-    case CAIRO_FORMAT_RGBA128F: // TODO
-      color_depth = 128;
-      break;
-#endif
-    case CAIRO_FORMAT_INVALID:
-    default:
-      color_depth = 0;
-      break;
-    }
-
+  int color_depth = gpaint_cairo_get_color_depth (state->main_surface);
   char image_info[256];
 
   if (color_depth)
@@ -761,11 +731,13 @@ update_cursor_position (AppState *state, double x, double y)
 
   if (x < 0 || px >= width || y < 0 || py >= height)
     {
+      gtk_widget_set_visible (state->current_position, FALSE);
       // TODO
       gtk_label_set_text (GTK_LABEL (state->current_position), "");
     }
   else
     {
+      gtk_widget_set_visible (state->current_position, TRUE);
       gchar position[256];
       g_snprintf (position, sizeof (position), "[%d, %d]", MIN (px, width - 1), MIN (py, height - 1));
       gtk_label_set_text (GTK_LABEL (state->current_position), position);
@@ -775,37 +747,21 @@ update_cursor_position (AppState *state, double x, double y)
 }
 
 ///
-
+// TODO
 /*
- * Returns the intersection (in child widget coordinates) of the child's allocation
- * and the viewport's allocation (which represents the visible area).
- * Assumes that `child` is a descendant of a GtkViewport.
+ * Returns the intersection (in child widget coordinates) of the child's
+ * allocation and the viewport's allocation (which represents the visible
+ * area). Assumes that `child` is a descendant of a GtkViewport.
  */
-void
-my_get_visible_rect (AppState *state,
-                     double *x,
-                     double *y,
-                     double *width,
-                     double *height)
+static void
+my_get_visible_rect (AppState *state, double *x, double *y, double *width, double *height)
 {
-  GtkAdjustment *hadj = state->hadj;
-  GtkAdjustment *vadj = state->vadj;
-  double x_offset = gtk_adjustment_get_value (hadj);
-  double y_offset = gtk_adjustment_get_value (vadj);
-  double page_width = gtk_adjustment_get_page_size (hadj);
-  double page_height = gtk_adjustment_get_page_size (vadj);
-
-  *x = x_offset;
-  *y = y_offset;
-  *width = page_width;
-  *height = page_height;
+  *x = gtk_adjustment_get_value (state->hadj);
+  *y = gtk_adjustment_get_value (state->vadj);
+  *width = gtk_adjustment_get_page_size (state->hadj);
+  *height = gtk_adjustment_get_page_size (state->vadj);
 }
 ///
-
-static void
-draw_surface_on_rect (cairo_t *cr, cairo_surface_t *surface, const GdkRectangle *rect)
-{
-}
 
 static void
 draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data)
@@ -815,13 +771,15 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
   const int surface_width = cairo_image_surface_get_width (state->main_surface);
   const int surface_height = cairo_image_surface_get_height (state->main_surface);
   cairo_pattern_t *pattern;
-  const double bg[2] = { 0.8, 0.9 };
-  const double line_color = 0.7; // TODO
+  const double bg[2] = { 0x54 / 255.0, 0xA8 / 255.0 };
+  const double line_color = (bg[0] + bg[1]) / 2.0; // TODO
 
   double s_x, s_y, s_width, s_height;
   my_get_visible_rect (state, &s_x, &s_y, &s_width, &s_height);
 
-  const int d = 2; // TODO: Preserve some space for if drawing area scaled and not properly aligned.
+  // TODO
+  const int d = 2 * MAX (8.0, pixel_size); // TODO: Preserve some space for if drawing
+                                           // area scaled and not properly aligned.
   const double r = pixel_size;
   const GdkRectangle v = {
     .x = (int) (s_x / r) - d,
@@ -830,15 +788,10 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
     .height = (int) (s_height / r) + 2 * d,
   };
 
-  // TODO
-  /* if (!g_variant_get_boolean (g_action_get_state (state->antialiasing_action))) */
-  /*   cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE); */
-  /* else */
-  /*   cairo_set_antialias (cr, CAIRO_ANTIALIAS_DEFAULT); */
+  // draw_transparent_square (cr, v.x, v.y, v.width, v.height, 1.0);
 
   cairo_save (cr);
   cairo_scale (cr, pixel_size, pixel_size);
-
   // TODO use draw_transparent_square
   double color = bg[1];
   cairo_set_source_rgb (cr, color, color, color);
@@ -915,6 +868,35 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
       cairo_restore (cr);
     }
 
+  // TODO
+  if (state->selected_surface)
+    {
+      cairo_save (cr);
+      cairo_scale (cr, pixel_size, pixel_size);
+      pattern = cairo_pattern_create_for_surface (state->main_surface);
+      cairo_pattern_set_filter (pattern, CAIRO_FILTER_NEAREST);
+      cairo_set_source (cr, pattern);
+      cairo_paint (cr);
+      cairo_pattern_destroy (pattern);
+
+      cairo_pattern_t *selection_pattern = cairo_pattern_create_for_surface (state->selected_surface);
+      cairo_pattern_set_filter (selection_pattern, CAIRO_FILTER_NEAREST);
+
+      // Position the selection pattern
+      cairo_matrix_t matrix;
+      cairo_matrix_init_translate (&matrix, -state->selected_rect.x, -state->selected_rect.y);
+      cairo_pattern_set_matrix (selection_pattern, &matrix);
+
+      // Set source and paint
+      cairo_set_source (cr, selection_pattern);
+      cairo_rectangle (cr, state->selected_rect.x, state->selected_rect.y, state->selected_rect.width, state->selected_rect.height);
+      cairo_clip (cr);
+      cairo_pattern_destroy (selection_pattern);
+
+      cairo_paint (cr);
+      cairo_restore (cr);
+    }
+
   if (g_variant_get_boolean (g_action_get_state (state->show_grid_action)) && pixel_size >= 4.0)
     {
       cairo_save (cr);
@@ -947,58 +929,83 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
       cairo_restore (cr);
     }
 
-  // TODO
-  if (state->selected_surface)
-    {
-      cairo_save (cr);
-      cairo_scale (cr, pixel_size, pixel_size);
-      pattern = cairo_pattern_create_for_surface (state->main_surface);
-      cairo_pattern_set_filter (pattern, CAIRO_FILTER_NEAREST);
-      cairo_set_source (cr, pattern);
-      cairo_paint (cr);
-      cairo_pattern_destroy (pattern);
-
-      cairo_pattern_t *selection_pattern = cairo_pattern_create_for_surface (state->selected_surface);
-      cairo_pattern_set_filter (selection_pattern, CAIRO_FILTER_NEAREST);
-
-      // Position the selection pattern
-      cairo_matrix_t matrix;
-      cairo_matrix_init_translate (&matrix,
-                                   -state->selected_rect.x,
-                                   -state->selected_rect.y);
-      cairo_pattern_set_matrix (selection_pattern, &matrix);
-
-      // Set source and paint
-      cairo_set_source (cr, selection_pattern);
-      cairo_rectangle (cr,
-                       state->selected_rect.x,
-                       state->selected_rect.y,
-                       state->selected_rect.width,
-                       state->selected_rect.height);
-      cairo_clip (cr);
-      cairo_pattern_destroy (selection_pattern);
-
-      cairo_paint (cr);
-      cairo_restore (cr);
-    }
-
   if (state->tool->type == TOOL_SELECT_RECTANGLE)
     {
       cairo_save (cr);
       cairo_scale (cr, pixel_size, pixel_size);
       cairo_set_line_width (cr, 2.0 / pixel_size);
 
-      // Define a dashed line pattern
-      double dashes[] = { 4.0 / pixel_size, 4.0 / pixel_size }; // 2 units on, 2 units off
-      cairo_set_dash (cr, dashes, 2, 0);                        // Set the dash pattern
-      cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);                 // Black color
+      // Define the rectangle path
+      cairo_rectangle (cr, state->selected_rect.x, state->selected_rect.y, state->selected_rect.width, state->selected_rect.height);
 
-      // Draw a rectangle
-      cairo_rectangle (cr, state->selected_rect.x, state->selected_rect.y,
-                       state->selected_rect.width, state->selected_rect.height);
-      cairo_stroke (cr);
+      // First stroke: black dashes
+      double dashes1[] = { 4.0 / pixel_size, 4.0 / pixel_size };
+      cairo_set_dash (cr, dashes1, 2, 0); // No offset
+      cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+      cairo_stroke_preserve (cr);
+
+      // Second stroke: cyan dashes with offset
+      double dashes2[] = { 4.0 / pixel_size, 4.0 / pixel_size };
+      cairo_set_dash (cr, dashes2, 2, 4.0 / pixel_size); // Offset by dash length to alternate
+      cairo_set_source_rgb (cr, 0.0, 1.0, 1.0);
+      cairo_stroke (cr); // Stroke the remaining path
       cairo_restore (cr);
     }
+
+  /* if (state->tool->type == TOOL_SELECT_RECTANGLE) */
+  /*   { */
+  /*     cairo_save (cr); */
+  /*     cairo_scale (cr, pixel_size, pixel_size); */
+  /*     cairo_set_line_width (cr, 2.0 / pixel_size); */
+
+  /*     // Define the dash pattern: 4 units on, 4 units off */
+  /*     const double dashes[] = { 4.0 / pixel_size, 4.0 / pixel_size }; */
+  /*     const int num_dashes = (int) G_N_ELEMENTS (dashes); */
+
+  /*     // TODO */
+  /*     // First pass: draw black dashes */
+  /*     cairo_set_dash (cr, dashes, num_dashes, 0); */
+  /*     cairo_set_source_rgb (cr, 0.0, 0.0, 0.0); */
+  /*     cairo_rectangle (cr, */
+  /*                      state->selected_rect.x, state->selected_rect.y, */
+  /*                      state->selected_rect.width,
+   * state->selected_rect.height); */
+  /*     cairo_stroke (cr); */
+
+  /*     // Second pass: draw cyan dashes, offset to interleave with black */
+  /*     cairo_set_dash (cr, dashes, num_dashes, dashes[0]); */
+  /*     cairo_set_source_rgb (cr, 0.0, 1.0, 1.0); */
+  /*     cairo_rectangle (cr, state->selected_rect.x, state->selected_rect.y,
+   */
+  /*                      state->selected_rect.width,
+   * state->selected_rect.height); */
+  /*     cairo_stroke (cr); */
+
+  /*     cairo_restore (cr); */
+  /*   } */
+
+  /* if (state->tool->type == TOOL_SELECT_RECTANGLE) */
+  /*   { */
+  /*     cairo_save (cr); */
+  /*     cairo_scale (cr, pixel_size, pixel_size); */
+  /*     cairo_set_line_width (cr, 2.0 / pixel_size); */
+
+  /*     // Define a dashed line pattern */
+  /*     double dashes[] = { 4.0 / pixel_size, 4.0 / pixel_size }; // 2 units
+   * on, 2 units off */
+  /*     cairo_set_dash (cr, dashes, 2, 0);                        // Set the
+   * dash pattern */
+  /*     cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);                 // Black
+   * color */
+
+  /*     // Draw a rectangle */
+  /*     cairo_rectangle (cr, state->selected_rect.x, state->selected_rect.y,
+   */
+  /*                      state->selected_rect.width,
+   * state->selected_rect.height); */
+  /*     cairo_stroke (cr); */
+  /*     cairo_restore (cr); */
+  /*   } */
 
   // TODO
   // Overlay cursor layer if available:
@@ -1012,21 +1019,28 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
   // TODO Drawing border...
   /* cairo_save (cr); */
   /* cairo_set_source_rgb (cr, 0.0, 0.0, 0.0); */
-  /* cairo_set_line_width (cr, 1.5); // TODO: 1.5 because 1.0 is invisible... */
+  /* cairo_set_line_width (cr, 1.5); // TODO: 1.5 because 1.0 is invisible...
+   */
   /* cairo_rectangle (cr, 0, 0, width, height); */
   /* cairo_stroke (cr); */
   /* cairo_restore (cr); */
 }
 
-static GdkTexture *
-create_texture_from_raw_data (int height, int width, int rowstride, const guchar *raw_data)
-{
-  g_autoptr (GdkPixbuf) pixbuf = gdk_pixbuf_new_from_data ((guchar *) raw_data, GDK_COLORSPACE_RGB, /* has alpha */ TRUE, 8, width, height, rowstride, NULL, NULL);
-  if (!pixbuf)
-    return NULL;
-  GdkTexture *texture = gdk_texture_new_for_pixbuf (pixbuf);
-  return texture;
-}
+/* static GdkTexture * */
+/* create_texture_from_raw_data (int height, int width, int rowstride, const
+ * guchar *raw_data) */
+/* { */
+/*   g_autoptr (GdkPixbuf) pixbuf = gdk_pixbuf_new_from_data ((guchar *)
+ * raw_data, GDK_COLORSPACE_RGB, */
+/*                                                            /\* has alpha *\/
+ * TRUE, 8, width, height, */
+/*                                                            rowstride, NULL,
+ * NULL); */
+/*   if (!pixbuf) */
+/*     return NULL; */
+/*   GdkTexture *texture = gdk_texture_new_for_pixbuf (pixbuf); */
+/*   return texture; */
+/* } */
 
 /* Updates cursor based on current tool – update per GTK4 docs if needed */
 static void
@@ -1035,41 +1049,16 @@ update_cursor (AppState *state)
   g_autoptr (GdkCursor) cursor = NULL;
 
   // TODO
-  if (state->has_selection && my_dots_in_rect (state->cursor_x / state->zoom_level,
-                                               state->cursor_y / state->zoom_level,
+  if (state->has_selection && my_dots_in_rect ((int) (state->cursor_x / state->zoom_level),
+                                               (int) (state->cursor_y / state->zoom_level),
                                                &state->selected_rect))
-    {
-      cursor = gdk_cursor_new_from_name (state->is_dragging_selection ? "grabbing" : "grab", NULL);
-    }
+    cursor = gdk_cursor_new_from_name (state->is_dragging_selection ? "grabbing" : "grab", NULL);
   else if (state->tool->draw_cursor_handler)
+    cursor = gdk_cursor_new_from_name ("none", NULL);
+  else if (state->cursors[state->tool->type])
     {
-      cursor = gdk_cursor_new_from_name ("none", NULL);
-    }
-  else if (state->tool->cursor)
-    {
-      cursor = gdk_cursor_new_from_name (state->tool->cursor, NULL);
-
-      if (!cursor)
-        {
-          g_warning ("Failed to create GdkCursor from name: %s", state->tool->cursor);
-          return;
-        }
-    }
-  else
-    {
-      const struct raw_bitmap *icon = state->tool->cursor_icon
-                                          ? state->tool->cursor_icon
-                                          : state->tool->icon;
-      g_autoptr (GdkTexture) texture = create_texture_from_raw_data (icon->height, icon->width,
-                                                                     icon->rowstride, icon->data);
-
-      cursor = gdk_cursor_new_from_texture (texture, icon->hotspot_x, icon->hotspot_y, NULL);
-
-      if (!cursor)
-        {
-          g_warning ("Failed to create GdkCursor from texture.");
-          return;
-        }
+      gtk_widget_set_cursor (state->drawing_area, state->cursors[state->tool->type]);
+      return;
     }
 
   gtk_widget_set_cursor (state->drawing_area, cursor);
@@ -1120,13 +1109,20 @@ on_click_pressed (GtkGestureDrag *gesture, double x, double y, gpointer user_dat
   if (state->preview_surface)
     g_clear_pointer (&state->preview_surface, cairo_surface_destroy);
 
-  state->preview_surface = create_surface (cairo_image_surface_get_width (state->main_surface),
-                                           cairo_image_surface_get_height (state->main_surface));
+  state->preview_surface = create_surface (cairo_image_surface_get_width (state->main_surface), cairo_image_surface_get_height (state->main_surface));
 
   if (state->tool->override_main_surface)
     copy_surface (state->preview_surface, state->main_surface);
 
-  if (state->tool->type == TOOL_FREEHAND || state->tool->type == TOOL_SYMMETRIC_FREEHAND || state->tool->type == TOOL_ERASER || state->tool->type == TOOL_BRUSH || state->tool->type == TOOL_BUCKET) // TODO
+  // TODO
+  /* [TOOL_LINE]             	= { "Line", &global_line_tool }, */
+  /* [TOOL_RECTANGLE]        	= { "Rect", &global_rectangle_tool }, */
+  /* [TOOL_ELLIPSE]          	= { "Ellipse", &global_ellipse_tool }, */
+  /* [TOOL_SELECT_RECTANGLE] 	= { "Select rectangle",
+   * &global_select_rectangle_tool }, */
+  /* [TOOL_DRAG]             	= { "Drag", &global_drag_tool }, */
+
+  if (state->tool->type == TOOL_FREEHAND || state->tool->type == TOOL_SYMMETRIC_FREEHAND || state->tool->type == TOOL_ERASER || state->tool->type == TOOL_BRUSH || state->tool->type == TOOL_BUCKET || state->tool->type == TOOL_PICKER) // TODO
     {
       state->tool->draw_handler (state, px, py, px, py);
       gtk_widget_queue_draw (state->drawing_area);
@@ -1168,11 +1164,7 @@ on_click_released (GtkGestureDrag *gesture, double x, double y, gpointer user_da
     {
       save_backup (&state->backup_manager, state->main_surface);
 
-      cairo_t *cr = create_cairo (state->main_surface,
-                                  state->tool->override_main_surface
-                                      ? CAIRO_OPERATOR_SOURCE
-                                      : CAIRO_OPERATOR_OVER,
-                                  state->antialiasing);
+      cairo_t *cr = create_cairo (state->main_surface, state->tool->override_main_surface ? CAIRO_OPERATOR_SOURCE : CAIRO_OPERATOR_OVER, state->antialiasing);
       cairo_set_source_surface (cr, state->preview_surface, 0, 0);
       cairo_paint (cr);
       cairo_destroy (cr);
@@ -1182,8 +1174,10 @@ on_click_released (GtkGestureDrag *gesture, double x, double y, gpointer user_da
   state->is_drawing = FALSE;
 
   /// TODO
-  // gtk_widget_queue_draw (gpaint_layers_widget_get_selected_button (GPAINT_LAYERS_WIDGET (state->layers)));
-  //  TODO gpaint_preview_widget_queue_redraw (GPAINT_LAYERS_WIDGET (state->layers));
+  // gtk_widget_queue_draw (gpaint_layers_widget_get_selected_button
+  // (GPAINT_LAYERS_WIDGET (state->layers)));
+  //  TODO gpaint_preview_widget_queue_redraw (GPAINT_LAYERS_WIDGET
+  //  (state->layers));
   //  TODO gpaint_layers_widget_queue_redraw (state->layers);
   ///
 
@@ -1224,9 +1218,11 @@ drag_update (GtkGestureDrag *gesture, double x, double y, gpointer user_data)
 
   /*     // Constrain to canvas boundaries */
   /*     state->selected_rect.x = CLAMP(state->selected_rect.x, 0, */
-  /*         cairo_image_surface_get_width(state->main_surface) - state->selected_rect.width); */
+  /*         cairo_image_surface_get_width(state->main_surface) -
+   * state->selected_rect.width); */
   /*     state->selected_rect.y = CLAMP(state->selected_rect.y, 0, */
-  /*         cairo_image_surface_get_height(state->main_surface) - state->selected_rect.height); */
+  /*         cairo_image_surface_get_height(state->main_surface) -
+   * state->selected_rect.height); */
 
   /*     // Store current position for next update */
   /*     state->last_drag_x = current_x; */
@@ -1270,6 +1266,7 @@ on_color_changed (GtkColorDialogButton *btn, GParamSpec *pspec, gpointer user_da
   gpaint_color_swap_button_update_colors (GPAINT_COLOR_SWAP_BUTTON (state->color_swap_button));
 }
 
+// TODO
 static void
 export_image (AppState *state, const gchar *filename)
 {
@@ -1279,19 +1276,27 @@ export_image (AppState *state, const gchar *filename)
   /*    This allows formats such as JPG, BMP, or GIF. *\/ */
   /* g_autoptr (GdkPixbuf) pixbuf; */
 
-  /* pixbuf = gdk_pixbuf_new_from_data (cairo_image_surface_get_data (state->main_surface), */
-  /*                                    GDK_COLORSPACE_RGB, // TODO colospace */
-  /*                                    TRUE,               // TODO has alpha */
-  /*                                    8,                  // TODO rowstride */
-  /*                                    cairo_image_surface_get_width (state->main_surface), */
-  /*                                    cairo_image_surface_get_height (state->main_surface), */
-  /*                                    cairo_image_surface_get_stride (state->main_surface), */
+  /* pixbuf = gdk_pixbuf_new_from_data (cairo_image_surface_get_data
+   * (state->main_surface), */
+  /*                                    GDK_COLORSPACE_RGB, // TODO colospace
+   */
+  /*                                    TRUE,               // TODO has alpha
+   */
+  /*                                    8,                  // TODO rowstride
+   */
+  /*                                    cairo_image_surface_get_width
+   * (state->main_surface), */
+  /*                                    cairo_image_surface_get_height
+   * (state->main_surface), */
+  /*                                    cairo_image_surface_get_stride
+   * (state->main_surface), */
   /*                                    NULL, NULL); */
 
   /* if (pixbuf != NULL) */
   /*   { */
   /*     GError *error = NULL; */
-  /*     if (!gdk_pixbuf_save (pixbuf, filename, ext ? ext + 1 : "png", &error, NULL)) */
+  /*     if (!gdk_pixbuf_save (pixbuf, filename, ext ? ext + 1 : "png", &error,
+   * NULL)) */
   /*       { */
   /*         g_warning ("Failed to save image: %s", error->message); */
   /*         g_error_free (error); */
@@ -1310,17 +1315,24 @@ on_save_response (GObject *source_object, GAsyncResult *res, gpointer user_data)
     return;
 
   g_autofree gchar *path = g_file_get_path (file);
-  save_image (path, state->main_surface, 1, NULL);
+  GError *error = NULL;
+  // TODO
+  /* if (!save_image (path, state->main_surface, 1, &error)) */
+  /*   g_warning("Failed to save image %s", error->message); */
 
-  GList surfaces =
-    {
-      .data = state->main_surface,
-      .next = NULL,
-      .prev = NULL,
-    };
+  GList surfaces = {
+    .data = state->main_surface,
+    .next = NULL,
+    .prev = NULL,
+  };
 
   for (size_t i = 0; i < G_N_ELEMENTS (gpaint_formats); i++)
-    save_surfaces_with_ffmpeg (g_strdup_printf("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, NULL);
+    {
+      error = NULL;
+      puts (gpaint_formats[i].extensions[0]);
+      if (!save_surfaces_with_ffmpeg (g_strdup_printf ("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, &error))
+        g_warning ("Failed to save image %s", error->message);
+    }
 
   // TODO gtk_window_destroy (GTK_WINDOW (dialog));
 }
@@ -1331,7 +1343,7 @@ on_save_file (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   AppState *state = (AppState *) user_data;
   GtkFileDialog *dialog = GTK_FILE_DIALOG (gtk_file_dialog_new ());
-  gtk_file_dialog_set_title (dialog, _("Save image"));
+  gtk_file_dialog_set_title (dialog, _ ("Save image"));
   gtk_file_dialog_set_modal (GTK_FILE_DIALOG (dialog), TRUE);
 
   // TODO
@@ -1407,61 +1419,30 @@ on_open_file (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   gtk_file_dialog_open (dialog, GTK_WINDOW (state->window), NULL, on_open_response, state);
 }
 
+// clang-format off
 static ValueItem line_widths[] =
   {
-    {
-      "./icons/line1.png",
-      1,
-    },
-    {
-      "./icons/line2.png",
-      2,
-    },
-    {
-      "./icons/line3.png",
-      3,
-    },
-    {
-      "./icons/line4.png",
-      4,
-    },
-    {
-      "./icons/line5.png",
-      5,
-    },
+    { "./icons/line1.png", 1 },
+    { "./icons/line2.png", 2 },
+    { "./icons/line3.png", 3 },
+    { "./icons/line4.png", 4 },
+    { "./icons/line5.png", 5 },
   };
 
 static ValueItem fills[] =
   {
-    {
-      "./icons/fill1.png",
-      FILL_TRANSPARENT,
-    },
-    {
-      "./icons/fill2.png",
-      FILL_SECONDARY,
-    },
-    {
-      "./icons/fill3.png",
-      FILL_PRIMARY,
-    },
+    { "./icons/fill1.png", FILL_TRANSPARENT },
+    { "./icons/fill2.png", FILL_SECONDARY },
+    { "./icons/fill3.png", FILL_PRIMARY },
   };
 
 static ValueItem eraser_sizes[] =
   {
-    {
-      "./icons/fill1.png",
-      2,
-    },
-    {
-      "./icons/fill2.png",
-      4,
-    },
-    {
-      "./icons/fill3.png",
-      6,
-    },
+    { "./icons/fill1.png", 2 },
+    { "./icons/fill2.png", 4 },
+    { "./icons/fill3.png", 6 },
   };
+// clang-format on
 
 static void
 on_width_selected (gpointer user_data, int width)
@@ -1502,9 +1483,21 @@ static void
 swap_colors (gpointer user_data)
 {
   AppState *state = (AppState *) user_data;
-  GdkRGBA t = state->primary_color;
+  const GdkRGBA t = state->primary_color;
   state->primary_color = state->secondary_color;
   state->secondary_color = t;
+  gtk_color_dialog_button_set_rgba (GTK_COLOR_DIALOG_BUTTON (state->color_btn), &state->primary_color);
+}
+
+static void
+on_color_selected (GtkGestureClick *self, gint n_press, gdouble x, gdouble y, gpointer user_data)
+{
+  AppState *state = (AppState *) user_data;
+  const GdkRGBA *color = (const GdkRGBA *) g_object_get_data (G_OBJECT (self), "color");
+  GdkRGBA *target = (GdkRGBA *) g_object_get_data (G_OBJECT (self), "target"); // TODO RENAME
+
+  *target = *color;
+  gpaint_color_swap_button_update_colors (GPAINT_COLOR_SWAP_BUTTON (state->color_swap_button));
   gtk_color_dialog_button_set_rgba (GTK_COLOR_DIALOG_BUTTON (state->color_btn), &state->primary_color);
 }
 
@@ -1520,12 +1513,106 @@ tool_toggled (GtkToggleButton *btn, gpointer user_data)
   update_cursor (state);
 }
 
+static void
+draw_colored_square0 (GtkDrawingArea *area, cairo_t *cr, gint width, gint height, gpointer user_data)
+{
+  const GdkRGBA *color = (const GdkRGBA *) user_data;
+  draw_colored_square (cr, color, 0, 0, width, height, 8.0);
+  /* const GdkRGBA border = { 0.0, 0.0, 0.0, 1.0 }; */
+  /* const gdouble border_width = 1.0; */
+  /* cairo_save (cr); */
+  /* gdk_cairo_set_source_rgba (cr, &border); */
+  /* cairo_set_line_width (cr, border_width); */
+  /* cairo_rectangle (cr, border_width / 2.0, border_width / 2.0, */
+  /*                  width - border_width, height - border_width); */
+  /* cairo_stroke (cr); */
+  /* cairo_restore (cr); */
+}
+
+static GtkWidget *
+create_color_grid (AppState *state)
+{
+  enum
+  {
+    SQUARE_SIZE = 24
+  };
+
+  GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+  GtkWidget *grid = gtk_grid_new ();
+
+#define C(r, g, b) { r, g, b, 1.0 }
+  static const GdkRGBA colors[][2] = {
+    { C (1.0, 1.0, 1.0), C (0.0, 0.0, 0.0) },
+    { C (0.5, 0.5, 0.5), C (0.125, 0.125, 0.125) },
+    { { 0.0, 0.0, 0.0, 0.0 }, C (0.875, 0.875, 0.875) },
+    { C (1.0, 0.0, 0.0), C (1.0, 1.0, 0.0) },
+    { C (0.0, 1.0, 0.0), C (0.0, 1.0, 1.0) },
+    { C (0.0, 0.0, 1.0), C (1.0, 0.0, 1.0) },
+  };
+#undef C
+
+  g_autoptr (GtkCssProvider) css_provider = gtk_css_provider_new ();
+  gtk_css_provider_load_from_string (css_provider, "button { padding: 0; }");
+
+  for (size_t i = 0; i < G_N_ELEMENTS (colors); i++)
+    for (size_t j = 0; j < G_N_ELEMENTS (colors[0]); j++)
+      {
+        GtkWidget *btn = gtk_button_new ();
+        GtkWidget *square = gtk_drawing_area_new ();
+
+        gtk_style_context_add_provider (gtk_widget_get_style_context (btn), GTK_STYLE_PROVIDER (css_provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+        gtk_button_set_has_frame (GTK_BUTTON (btn), FALSE); // TODO
+        // gtk_widget_set_size_request(btn, SQUARE_SIZE, SQUARE_SIZE);
+        gtk_widget_set_size_request (square, SQUARE_SIZE, SQUARE_SIZE);
+
+        gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (square), draw_colored_square0, &colors[i][j], NULL);
+        gtk_button_set_child (GTK_BUTTON (btn), square);
+
+        // clang-format off
+        const struct
+        {
+          GdkRGBA *target;
+          int button;
+        } t[] =
+          {
+            { &state->primary_color, GDK_BUTTON_PRIMARY },
+            { &state->secondary_color, GDK_BUTTON_SECONDARY },
+          };
+        // clang-format on
+
+        for (size_t k = 0; k < G_N_ELEMENTS (t); k++)
+          {
+            GtkGesture *click = gtk_gesture_click_new ();
+            g_object_set_data (G_OBJECT (click), "color", (gpointer) &colors[i][j]);
+            g_object_set_data (G_OBJECT (click), "target", t[k].target);
+            gtk_gesture_single_set_button (GTK_GESTURE_SINGLE (click), t[k].button);
+            g_signal_connect (click, "pressed", G_CALLBACK (on_color_selected), state);
+            gtk_widget_add_controller (btn, GTK_EVENT_CONTROLLER (click));
+          }
+
+        /* g_signal_connect (btn, "clicked", G_CALLBACK (on_color_selected),
+         * state); */
+
+        gtk_grid_attach (GTK_GRID (grid), btn, i, j, 1, 1);
+      }
+
+  gtk_box_append (GTK_BOX (hbox), grid);
+  return hbox;
+}
+
 static GtkWidget *
 create_toolbar_grid (AppState *state)
 {
   GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_set_spacing (GTK_BOX (vbox), 8);
   GtkWidget *grid = gtk_grid_new ();
+  gtk_grid_set_column_spacing (GTK_GRID (grid), 4);
+  gtk_grid_set_row_spacing (GTK_GRID (grid), 4);
+
+  // TODO
+  gtk_widget_set_margin_start (vbox, 4);
+  gtk_widget_set_margin_end (vbox, 4);
 
   /* gtk_widget_set_margin_top (grid, 2); */
   /* gtk_widget_set_margin_bottom (grid, 2); */
@@ -1536,20 +1623,19 @@ create_toolbar_grid (AppState *state)
 
   GtkWidget *prev_button = NULL;
 
-  for (int i = 0; state->tools[i].label; i++)
+  for (int i = 0; i < TOOLS_COUNT; i++)
     {
       const Tool *tool = state->tools[i].tool;
       GtkWidget *btn = gtk_toggle_button_new ();
 
-      g_autoptr (GdkPixbuf) pixbuf = gdk_pixbuf_new_from_data (tool->icon->data,
-                                                               tool->icon->colorspace,
-                                                               /* has alpha */ TRUE,
-                                                               tool->icon->bits_per_sample,
-                                                               tool->icon->height,
-                                                               tool->icon->width,
-                                                               tool->icon->rowstride,
-                                                               NULL, NULL);
-      g_autoptr (GdkTexture) texture = gdk_texture_new_for_pixbuf (pixbuf);
+      GBytes *data = g_bytes_new_static (tool->icon->data, tool->icon->size);
+      GError *error = NULL;
+
+      g_autoptr (GdkTexture) texture = gdk_texture_new_from_bytes (data, &error);
+
+      if (!texture)
+        g_warning ("Failed to create texture for tool %s: %s", state->tools[i].label, error->message);
+
       GtkWidget *icon_image = gtk_image_new_from_paintable (GDK_PAINTABLE (texture));
 
       gtk_button_set_child (GTK_BUTTON (btn), icon_image);
@@ -1580,6 +1666,7 @@ create_toolbar_grid (AppState *state)
   gtk_box_append (GTK_BOX (vbox), state->width_selector);
   gtk_box_append (GTK_BOX (vbox), state->fill_selector);
   gtk_box_append (GTK_BOX (vbox), state->eraser_size_selector);
+
   return vbox;
 }
 
@@ -1592,11 +1679,13 @@ on_new_file (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 }
 
 /* static GtkWidget * */
-/* create_actions_toolbar (GtkApplication *app, AppState *state, const gchar *name, AppAction *actions, size_t n_actions) */
+/* create_actions_toolbar (GtkApplication *app, AppState *state, const gchar
+ * *name, AppAction *actions, size_t n_actions) */
 /* { */
 /*   for (size_t i = 0; i < n_actions; i++) */
 /*     { */
-/*       GSimpleAction *action = g_simple_action_new (actions[i].short_key, NULL); */
+/*       GSimpleAction *action = g_simple_action_new (actions[i].short_key,
+ * NULL); */
 /*       g_signal_connect (action, "activate", actions[i].callback, state); */
 /*       g_action_map_add_action (G_ACTION_MAP (app), G_ACTION (action)); */
 
@@ -1610,17 +1699,19 @@ on_new_file (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 /*     g_menu_append (menu, actions[i].label, actions[i].key); */
 
 /*   GtkWidget *menu_btn = gtk_menu_button_new (); */
-/*   gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (menu_btn), G_MENU_MODEL (menu)); */
+/*   gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (menu_btn), G_MENU_MODEL
+ * (menu)); */
 /*   gtk_menu_button_set_label (GTK_MENU_BUTTON (menu_btn), name); */
 
 /*   for (size_t i = 0; i < n_actions; i++) */
-/*     gtk_application_set_accels_for_action (app, actions[i].key, actions[i].accel); */
+/*     gtk_application_set_accels_for_action (app, actions[i].key,
+ * actions[i].accel); */
 
 /*   return menu_btn; */
 /* } */
 
 static GtkWidget *
-create_file_toolbar (GtkApplication *app, AppState *state)
+create_file_toolbar (AppState *state)
 {
   g_autoptr (GMenu) file = g_menu_new ();
 
@@ -1636,7 +1727,7 @@ create_file_toolbar (GtkApplication *app, AppState *state)
 }
 
 static GtkWidget *
-create_edit_toolbar (GtkApplication *app, AppState *state)
+create_edit_toolbar (AppState *state)
 {
   g_autoptr (GMenu) edit = g_menu_new ();
 
@@ -1657,12 +1748,16 @@ create_edit_toolbar (GtkApplication *app, AppState *state)
 }
 
 static GtkWidget *
-create_view_toolbar (GtkApplication *app, AppState *state)
+create_view_toolbar (AppState *state)
 {
   g_autoptr (GMenu) view = g_menu_new ();
 
   g_menu_append (view, "Show grid", "app.showgrid");
   g_menu_append (view, "Enable antialiasing", "app.antialiasing");
+
+  g_menu_append (view, "Zoom in", "app.zoomin");
+  g_menu_append (view, "Zoom out", "app.zoomout");
+  g_menu_append (view, "Zoom reset", "app.zoomreset");
 
   GtkWidget *view_btn = gtk_menu_button_new ();
   gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (view_btn), G_MENU_MODEL (view));
@@ -1671,11 +1766,11 @@ create_view_toolbar (GtkApplication *app, AppState *state)
 }
 
 static void
-create_menus (GtkApplication *app, GtkWidget *header_bar, AppState *state)
+create_menus (GtkWidget *header_bar, AppState *state)
 {
-  gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_file_toolbar (app, state));
-  gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_edit_toolbar (app, state));
-  gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_view_toolbar (app, state));
+  gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_file_toolbar (state));
+  gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_edit_toolbar (state));
+  gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_view_toolbar (state));
 }
 
 // TODO rename
@@ -1701,16 +1796,14 @@ resize_drawable_area_x (gpointer user_data, int dx, int dy, int dirx, int diry)
   clear_canvas (state->main_surface);
 
   cairo_t *cr = cairo_create (state->main_surface);
-  cairo_set_source_surface (cr, old_surface,
-                            (dirx < 0) ? new_width - width : 0,
-                            (diry < 0) ? new_height - height : 0);
+  cairo_set_source_surface (cr, old_surface, (dirx < 0) ? new_width - width : 0, (diry < 0) ? new_height - height : 0);
   cairo_paint (cr);
   cairo_destroy (cr);
 
   g_clear_pointer (&old_surface, cairo_surface_destroy);
 
-  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), cairo_image_surface_get_width (state->main_surface) * state->zoom_level);
-  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), cairo_image_surface_get_height (state->main_surface) * state->zoom_level);
+  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_width (state->main_surface) * state->zoom_level));
+  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_height (state->main_surface) * state->zoom_level));
   gtk_widget_queue_draw (state->drawing_area);
   update_cursor_position (state, -1, -1); // TODO
 }
@@ -1733,8 +1826,8 @@ resize_drawable_area (AppState *state, int new_width, int new_height)
 
   cairo_surface_destroy (old_surface);
 
-  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), cairo_image_surface_get_width (state->main_surface) * state->zoom_level);
-  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), cairo_image_surface_get_height (state->main_surface) * state->zoom_level);
+  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_width (state->main_surface) * state->zoom_level));
+  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_height (state->main_surface) * state->zoom_level));
   gtk_widget_queue_draw (state->drawing_area);
 }
 
@@ -1742,6 +1835,11 @@ static void on_entry_changed (GtkEditable *editable, gpointer user_data);
 
 typedef struct
 {
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  AdwDialog *dialog;
+#else
+  GtkWindow *dialog;
+#endif
   AppState *state;
   GtkWidget *width_entry;
   GtkWidget *height_entry;
@@ -1757,7 +1855,12 @@ on_ok_clicked (GtkButton *btn, gpointer user_data)
   int new_width = atoi (width_text);
   int new_height = atoi (height_text);
   resize_drawable_area (rd->state, new_width, new_height);
-  gtk_window_destroy (GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (btn))));
+
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  adw_dialog_close (rd->dialog);
+#else
+  gtk_window_destroy (GTK_WINDOW (rd->dialog));
+#endif
   g_free (rd);
 }
 
@@ -1765,7 +1868,11 @@ static void
 on_cancel_clicked (GtkButton *btn, gpointer user_data)
 {
   ResizeData *rd = (ResizeData *) user_data;
-  gtk_window_destroy (GTK_WINDOW (gtk_widget_get_root (GTK_WIDGET (btn))));
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  adw_dialog_close (rd->dialog);
+#else
+  gtk_window_destroy (GTK_WINDOW (rd->dialog));
+#endif
   g_free (rd);
 }
 
@@ -1789,7 +1896,7 @@ on_resize (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 {
   AppState *state = (AppState *) user_data;
 
-#if HAS_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
   AdwDialog *dialog = adw_dialog_new ();
 
   adw_dialog_set_title (dialog, "Resize drawable area");
@@ -1854,6 +1961,11 @@ on_resize (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   g_signal_connect (h.entry, "changed", G_CALLBACK (on_entry_changed), w.entry);
 
   ResizeData *rd = g_new (ResizeData, 1);
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  rd->dialog = dialog;
+#else
+  rd->dialog = GTK_WINDOW (window);
+#endif
   rd->state = state;
   rd->width_entry = w.entry;
   rd->height_entry = h.entry;
@@ -1866,14 +1978,15 @@ on_resize (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 
   g_signal_connect (keep_ratio_check, "toggled", G_CALLBACK (on_keep_ratio_check_toggled), rd);
 
-  gtk_check_button_set_active (GTK_CHECK_BUTTON (keep_ratio_check), TRUE); // TODO: if true -- set up values in entries
+  gtk_check_button_set_active (GTK_CHECK_BUTTON (keep_ratio_check),
+                               TRUE); // TODO: if true -- set up values in entries
   on_keep_ratio_check_toggled (GTK_CHECK_BUTTON (keep_ratio_check), rd);
 
   gtk_grid_attach (GTK_GRID (grid), keep_ratio_check, 0, 2, 2, 1);
   gtk_grid_attach (GTK_GRID (grid), ok_button, 0, 3, 1, 1);
   gtk_grid_attach (GTK_GRID (grid), cancel_button, 1, 3, 1, 1);
 
-#if HAS_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
   adw_dialog_set_child (dialog, grid);
   adw_dialog_present (dialog, state->window);
 #else
@@ -1907,17 +2020,17 @@ static GtkWidget *
 create_drawing_area (AppState *state)
 {
   GtkWidget *drawing_area = gtk_drawing_area_new ();
-  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (drawing_area), cairo_image_surface_get_width (state->main_surface) * state->zoom_level);
-  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (drawing_area), cairo_image_surface_get_height (state->main_surface) * state->zoom_level);
+  gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (drawing_area), (int) (cairo_image_surface_get_width (state->main_surface) * state->zoom_level));
+  gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (drawing_area), (int) (cairo_image_surface_get_height (state->main_surface) * state->zoom_level));
   gtk_drawing_area_set_draw_func (GTK_DRAWING_AREA (drawing_area), draw_callback, state, NULL);
 
   struct
   {
-    int button;
     void (*callback) (GtkGestureDrag *gesture, double x, double y, gpointer user_data);
+    guint button;
   } buttons[2] = {
-    { .button = GDK_BUTTON_PRIMARY, .callback = on_click_primary_pressed },
-    { .button = GDK_BUTTON_SECONDARY, .callback = on_click_secondary_pressed },
+    { .callback = on_click_primary_pressed,   .button = GDK_BUTTON_PRIMARY   },
+    { .callback = on_click_secondary_pressed, .button = GDK_BUTTON_SECONDARY },
   };
 
   for (size_t i = 0; i < G_N_ELEMENTS (buttons); i++)
@@ -1938,26 +2051,29 @@ create_drawing_area (AppState *state)
   return drawing_area;
 }
 
-cairo_surface_t *
-get_surface (gpointer user_data)
-{
-  AppState *st = (AppState *) user_data;
-  return st->main_surface;
-}
+/* cairo_surface_t * */
+/* get_surface (gpointer user_data) */
+/* { */
+/*   AppState *st = (AppState *) user_data; */
+/*   return st->main_surface; */
+/* } */
 
-static void
-on_surface_selected (gpointer TODO, cairo_surface_t *surface, gpointer user_data)
-{
-  // TODO
-  AppState *state = (AppState *) user_data;
-  state->main_surface = surface;
-  gtk_widget_queue_draw (state->drawing_area);
-}
+// TODO
+/* static void */
+/* on_surface_selected (gpointer TODO, cairo_surface_t *surface, gpointer
+ * user_data) */
+/* { */
+/*   // TODO */
+/*   AppState *state = (AppState *) user_data; */
+/*   state->main_surface = surface; */
+/*   gtk_widget_queue_draw (state->drawing_area); */
+/* } */
 
 static void
 activate (GtkApplication *app, AppState *state)
 {
-#if HAS_ADWAITA
+  state->application = app;
+#if HAVE_ADWAITA
   GtkWidget *window = adw_window_new ();
   gtk_window_set_application (GTK_WINDOW (window), app); // TODO
 #else
@@ -2008,17 +2124,21 @@ activate (GtkApplication *app, AppState *state)
     gtk_grid_attach (GTK_GRID (grid), bot_right, 2, 2, 1, 1);
   }
 
-  // TODO
-  // Done for scrollbars
-  /* gtk_widget_set_margin_top (grid, 16); */
-  gtk_widget_set_margin_bottom (grid, 16);
-  /* gtk_widget_set_margin_start (grid, 16); */
-  gtk_widget_set_margin_end (grid, 16);
+  // TODO NEED IF GRID IS NOT CENTERED
+  /* // TODO */
+  /* // Done for scrollbars */
+  /* /\* gtk_widget_set_margin_top (grid, 16); *\/ */
+  /* gtk_widget_set_margin_bottom (grid, 16); */
+  /* /\* gtk_widget_set_margin_start (grid, 16); *\/ */
+  /* gtk_widget_set_margin_end (grid, 16); */
 
   GtkWidget *scrolled = gtk_scrolled_window_new ();
   gtk_widget_set_vexpand (scrolled, TRUE);
   gtk_widget_set_hexpand (scrolled, TRUE);
   gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scrolled), grid);
+  // TODO
+  gtk_widget_set_halign (grid, GTK_ALIGN_CENTER);
+  gtk_widget_set_valign (grid, GTK_ALIGN_CENTER);
   state->scrolled = scrolled;
   state->hadj = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (scrolled));
   state->vadj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (scrolled));
@@ -2027,10 +2147,7 @@ activate (GtkApplication *app, AppState *state)
   g_signal_connect (scroll_controller, "scroll", G_CALLBACK (on_scroll), state);
   gtk_widget_add_controller (scrolled, scroll_controller);
 
-  state->color_swap_button = gpaint_color_swap_button_new (get_primary_color,
-                                                           get_secondary_color,
-                                                           swap_colors,
-                                                           state);
+  state->color_swap_button = gpaint_color_swap_button_new (get_primary_color, get_secondary_color, swap_colors, state);
   state->image_info = gtk_label_new ("");
   state->current_position = gtk_label_new ("");
 
@@ -2040,10 +2157,15 @@ activate (GtkApplication *app, AppState *state)
   gtk_color_dialog_button_set_rgba (GTK_COLOR_DIALOG_BUTTON (state->color_btn), &state->primary_color);
   g_signal_connect (state->color_btn, "notify::rgba", G_CALLBACK (on_color_changed), state);
 
-  GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+  GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 16);
   gtk_box_append (GTK_BOX (hbox), state->color_swap_button);
   gtk_box_append (GTK_BOX (hbox), state->color_btn);
+  gtk_box_append (GTK_BOX (hbox), create_color_grid (state));
+
+  g_autoptr (GdkCursor) cursor = gdk_cursor_new_from_name ("default", NULL);
+  gtk_box_append (GTK_BOX (hbox), gtk_image_new_from_paintable (GDK_PAINTABLE (gdk_cursor_get_texture (cursor)))); // TODO
   gtk_box_append (GTK_BOX (hbox), state->image_info);
+
   gtk_box_append (GTK_BOX (hbox), state->current_position);
 
   state->info_widget = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
@@ -2054,17 +2176,20 @@ activate (GtkApplication *app, AppState *state)
   gtk_frame_set_child (GTK_FRAME (hframe), hbox);
 
   GtkWidget *toolbar_grid = create_toolbar_grid (state);
+
   GtkWidget *vframe = gtk_frame_new (NULL);
   gtk_frame_set_child (GTK_FRAME (vframe), toolbar_grid);
 
   GtkWidget *content_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   /* state->layers = gpaint_layers_widget_new(); */
   // TODO gpaint_layers_widget_get_selected_surface
-  // TODO g_signal_connect (state->layers, "surface-selected", G_CALLBACK (on_surface_selected), state);
+  // TODO g_signal_connect (state->layers, "surface-selected", G_CALLBACK
+  // (on_surface_selected), state);
   GtkWidget *lrs = gtk_frame_new (NULL); // TODO RENAME
   GtkWidget *scr = gtk_scrolled_window_new ();
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scr), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-  /* gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scr), state->layers); */
+  /* gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (scr), state->layers);
+   */
   gtk_frame_set_child (GTK_FRAME (lrs), scr);
 
   gtk_box_append (GTK_BOX (content_hbox), vframe);
@@ -2074,28 +2199,29 @@ activate (GtkApplication *app, AppState *state)
   {
     GtkWidget *vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     // TODO
-    /* gtk_box_append (GTK_BOX (vbox), my_layer_widget_new (get_surface, state)); */
+    /* gtk_box_append (GTK_BOX (vbox), my_layer_widget_new (get_surface,
+     * state)); */
 
     gtk_box_append (GTK_BOX (content_hbox), vbox);
   }
 
   GtkWidget *main_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 
-#if HAS_ADWAITA
+#if HAVE_ADWAITA
   gtk_box_append (GTK_BOX (main_vbox), header);
 #endif
 
   gtk_box_append (GTK_BOX (main_vbox), content_hbox);
   gtk_box_append (GTK_BOX (main_vbox), hframe);
 
-#if HAS_ADWAITA
+#if HAVE_ADWAITA
   adw_window_set_content (ADW_WINDOW (window), main_vbox);
 #else
   gtk_window_set_titlebar (GTK_WINDOW (window), header);
   gtk_window_set_child (GTK_WINDOW (window), main_vbox);
 #endif
 
-  create_menus (app, header, state);
+  create_menus (header, state);
   update_cursor (state);
   gtk_window_present (GTK_WINDOW (window));
   update_cursor_position (state, -1, -1);
@@ -2103,7 +2229,7 @@ activate (GtkApplication *app, AppState *state)
   const struct
   {
     const GActionEntry *actions;
-    size_t count;
+    gint count;
   } entries[] =
     {
       { .actions = file_actions, G_N_ELEMENTS (file_actions) },
@@ -2134,11 +2260,29 @@ activate (GtkApplication *app, AppState *state)
 int
 main (int argc, char **argv)
 {
+  setlocale (LC_ALL, "");
+
   bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
   textdomain (GETTEXT_PACKAGE);
 
-  AppState state;
+  // TODO
+  /* for (size_t k = 0; k < G_N_ELEMENTS (gpaint_formats); k++) */
+  /*   { */
+  /*     const AVCodec *codec = avcodec_find_encoder
+   * (gpaint_formats[k].codec_id); */
+  /*     const enum AVPixelFormat *pix_fmts = codec->pix_fmts; */
+  /*     if (pix_fmts) { */
+  /*       printf("Supported pixel formats by %s:\n", codec->name); */
+  /*       for (int i = 0; pix_fmts[i] != AV_PIX_FMT_NONE; i++) { */
+  /*         printf("  %s\n", av_get_pix_fmt_name(pix_fmts[i])); */
+  /*       } */
+  /*     } else { */
+  /*       printf("No specific pixel formats supported.\n"); */
+  /*     } */
+  /*   } */
+
+  AppState state = { 0 };
   state.main_surface = create_surface (64, 64);
   state.p_color = &state.primary_color;
   state.s_color = &state.secondary_color;
@@ -2161,27 +2305,64 @@ main (int argc, char **argv)
   state.antialiasing = CAIRO_ANTIALIAS_NONE;
   /* TODO state.last_drag_time = 0; */
 
-  // clang-format off
-  ToolEntry tools[] =
+  ToolEntry tools[] = {
+    [TOOL_FREEHAND] = { "Freehand",           &global_freehand_tool           },
+    [TOOL_BRUSH] = { "Brush",              &global_brush_tool              },
+    [TOOL_LINE] = { "Line",               &global_line_tool               },
+    [TOOL_RECTANGLE] = { "Rectangle",          &global_rectangle_tool          },
+    [TOOL_ELLIPSE] = { "Ellipse",            &global_ellipse_tool            },
+    [TOOL_TRIANGLE] = { "Triangle",           &global_triangle_tool           },
+    [TOOL_ERASER] = { "Eraser",             &global_eraser_tool             },
+    [TOOL_PICKER] = { "Picker",             &global_picker_tool             },
+    [TOOL_BUCKET] = { "Bucket",             &global_bucket_tool             },
+    [TOOL_SELECT_RECTANGLE] = { "Select rectangle",   &global_select_rectangle_tool   },
+    [TOOL_DRAG] = { "Drag",               &global_drag_tool               },
+    [TOOL_SYMMETRIC_FREEHAND] = { "Symmetric freehand", &global_symmetric_freehand_tool },
+  };
+
+  G_STATIC_ASSERT (G_N_ELEMENTS (tools) == TOOLS_COUNT);
+
+  for (size_t i = 0; i < TOOLS_COUNT; i++)
     {
-      [TOOL_FREEHAND]         	= { "Freehand",         	&global_freehand_tool },
-      [TOOL_BRUSH]            	= { "Brush",            	&global_brush_tool },
-      [TOOL_LINE]             	= { "Line",             	&global_line_tool },
-      [TOOL_RECTANGLE]        	= { "Rect",             	&global_rectangle_tool },
-      [TOOL_ELLIPSE]          	= { "Ellipse",          	&global_ellipse_tool },
-      [TOOL_ERASER]           	= { "Eraser",           	&global_eraser_tool },
-      [TOOL_PICKER]           	= { "Picker",           	&global_picker_tool },
-      [TOOL_BUCKET]           	= { "Bucket",           	&global_bucket_tool },
-      [TOOL_SELECT_RECTANGLE] 	= { "Select rectangle", 	&global_select_rectangle_tool },
-      [TOOL_DRAG]             	= { "Drag",             	&global_drag_tool },
-      [TOOL_SYMMETRIC_FREEHAND] = { "Symmetric freehand", 	&global_symmetric_freehand_tool },
-      { NULL, NULL, NULL },
-    };
-  // clang-format on
+      g_assert (tools[i].tool->cursor_name || tools[i].tool->cursor_icon || tools[i].tool->icon);
+
+      if (tools[i].tool->cursor_name)
+        {
+          GdkCursor *cursor = gdk_cursor_new_from_name (tools[i].tool->cursor_name, NULL);
+
+          if (!cursor)
+            g_warning ("Failed to create GdkCursor from name: %s", tools[i].tool->cursor_name);
+          else
+            state.cursors[tools[i].tool->type] = g_steal_pointer (&cursor);
+        }
+      else
+        {
+          const struct raw_bitmap *icon = tools[i].tool->cursor_icon
+                                            ? tools[i].tool->cursor_icon
+                                            : tools[i].tool->icon;
+
+          g_autoptr (GBytes) data = g_bytes_new_static (icon->data, icon->size);
+          GError *error = NULL;
+
+          g_autoptr (GdkTexture) texture = gdk_texture_new_from_bytes (data, &error);
+
+          if (!texture)
+            g_warning ("Failed to create texture: %s", error->message);
+          else
+            {
+              GdkCursor *cursor = gdk_cursor_new_from_texture (texture, icon->hotspot_x, icon->hotspot_y, NULL);
+
+              if (!cursor)
+                g_warning ("Failed to create GdkCursor from texture.");
+              else
+                state.cursors[tools[i].tool->type] = g_steal_pointer (&cursor);
+            }
+        }
+    }
 
   state.tools = tools;
 
-#if HAS_ADWAITA
+#if HAVE_ADWAITA
   g_autoptr (AdwApplication) app = adw_application_new ("org.gnu.paint", G_APPLICATION_DEFAULT_FLAGS);
 #else
   g_autoptr (GtkApplication) app = gtk_application_new ("org.gnu.paint", G_APPLICATION_DEFAULT_FLAGS);

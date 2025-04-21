@@ -1,5 +1,5 @@
 
-#WARN_FLAGS=				\
+WARN_FLAGS=				\
 	-Wall				\
 	-Wextra				\
 	-Wpedantic			\
@@ -64,7 +64,7 @@
 #	-Wformat=2			\
 	-Wformat-truncation=2
 
-#WARN=					\
+WARN=					\
 -Wbool-compare				\
 -Wbool-operation			\
 -Wbuiltin-declaration-mismatch		\
@@ -239,7 +239,7 @@
 -Wzero-length-bounds			\
 -Wconversion
 
-SANITIZE=-fsanitize=undefined \
+#SANITIZE=-fsanitize=undefined \
 	-fsanitize=return \
 	-fsanitize=alignment \
 	-fsanitize=nonnull-attribute \
@@ -260,7 +260,28 @@ SANITIZE=-fsanitize=undefined \
 	-fsanitize=vptr \
 	-fsanitize=address
 
+  # 'main.c',
+  # 'color-swap-button.c',
+  # 'border-widget.c',
+  # 'drag-square.c',
+  # 'backup.c',
+  # 'tools/select-rectangle.c',
+  # 'tools/freehand.c',
+  # 'tools/bucket.c',
+  # 'tools/eraser.c',
+  # 'tools/picker.c',
+  # 'tools/rectangle.c',
+  # 'tools/ellipse.c',
+  # 'tools/brush.c',
+  # 'tools/line.c',
+  # 'tools/drag.c',
+  # 'tools/symmetric.c',
+  # 'tools/tools-internal.c',
+  # 'tools/tools-icons.c',
+  # 'formats.c',
+
+
 all:
-	$(CC) -Wall -Wextra -lm -ggdb3 -Og -g3 -Isrc src/main.c src/color-swap-button.c src/tools/*.c -o paint `pkg-config --cflags --libs gtk4 libadwaita-1` $(WARN) $(WARN_FLAGS) $(SANITIZE) -Ibuild #-fanalyzer -Ibuild -pg
+	$(CC) -Wall -Wextra -lm -ggdb3 -Og -g3 -Isrc src/*.c src/tools/*.c -o paint `pkg-config --cflags --libs gtk4 libadwaita-1 libavutil libavcodec libavformat libswscale` $(WARN) $(WARN_FLAGS) $(SANITIZE) -Ibuild -fanalyzer -pg -Wno-unused-parameter #-Ibuild -pg
 
 #$(WARN) $(WARN_FLAGS) #-fanalyzer #$(SANITIZE)

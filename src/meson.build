@@ -1,8 +1,8 @@
 gpaint_sources = [
   'main.c',
-  'color-swap-button.c',
-  'border-widget.c',
-  'drag-square.c',
+  'widgets/color-swap-button.c',
+  'widgets/border-widget.c',
+  'widgets/drag-square.c',
   'backup.c',
   'tools/select-rectangle.c',
   'tools/freehand.c',
@@ -10,14 +10,16 @@ gpaint_sources = [
   'tools/eraser.c',
   'tools/picker.c',
   'tools/rectangle.c',
+  'tools/triangle.c',
   'tools/ellipse.c',
   'tools/brush.c',
   'tools/line.c',
   'tools/drag.c',
   'tools/symmetric.c',
   'tools/tools-internal.c',
-  'tools/tools-icons.c',
   'formats.c',
+  'widgets/value-selector.c',
+  'widgets/number-entry.c',
 ]
 
 gpaint_deps = [

@@ -61,11 +61,9 @@ apply_backup (AppState *state, cairo_surface_t *backup)
 {
   if (cairo_image_surface_get_width (backup) != cairo_image_surface_get_width (state->main_surface) || cairo_image_surface_get_height (backup) != cairo_image_surface_get_height (state->main_surface))
     {
-      state->main_surface = cairo_image_surface_create (state->format,
-                                                        cairo_image_surface_get_width (backup),
-                                                        cairo_image_surface_get_height (backup));
-      gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), cairo_image_surface_get_width (state->main_surface) * state->zoom_level);
-      gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), cairo_image_surface_get_height (state->main_surface) * state->zoom_level);
+      state->main_surface = cairo_image_surface_create (state->format, cairo_image_surface_get_width (backup), cairo_image_surface_get_height (backup));
+      gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_width (state->main_surface) * state->zoom_level));
+      gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_height (state->main_surface) * state->zoom_level));
       gtk_widget_queue_draw (state->drawing_area);
     }
 
@@ -108,8 +106,8 @@ move (BackupManager *manager, AppState *state, GQueue *from, GQueue *to)
   return TRUE;
 }
 
-// Undo: move one backup back. Copies the most recent backup from the undo queue
-// to the main surface, while saving the current state to the redo queue.
+// Undo: move one backup back. Copies the most recent backup from the undo
+// queue to the main surface, while saving the current state to the redo queue.
 // Returns 1 on success, 0 if no backup available.
 gboolean
 move_backward (BackupManager *manager, AppState *state)
@@ -117,8 +115,8 @@ move_backward (BackupManager *manager, AppState *state)
   return move (manager, state, manager->undo, manager->redo);
 }
 
-// Redo: move one backup forward. Copies the most recent backup from the redo queue
-// to the main surface, while saving the current state to the undo queue.
+// Redo: move one backup forward. Copies the most recent backup from the redo
+// queue to the main surface, while saving the current state to the undo queue.
 // Returns TRUE on success, FALSE if no backup available.
 gboolean
 move_forward (BackupManager *manager, AppState *state)
