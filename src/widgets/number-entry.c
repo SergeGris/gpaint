@@ -1,7 +1,15 @@
-
 #include <errno.h>
 
 #include "number-entry.h"
+
+struct _MyEntry
+{
+  GtkEntry parent_instance;
+
+  GtkPopover *popover;
+  GtkLabel *error_label;
+  guint timeout_id;
+};
 
 G_DEFINE_TYPE (MyEntry, my_entry, GTK_TYPE_ENTRY)
 

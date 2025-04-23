@@ -282,6 +282,6 @@ WARN=					\
 
 
 all:
-	$(CC) -Wall -Wextra -lm -ggdb3 -Og -g3 -Isrc src/*.c src/tools/*.c -o paint `pkg-config --cflags --libs gtk4 libadwaita-1 libavutil libavcodec libavformat libswscale` $(WARN) $(WARN_FLAGS) $(SANITIZE) -Ibuild -fanalyzer -pg -Wno-unused-parameter #-Ibuild -pg
+	$(CC) -Wall -Wextra -lm -ggdb3 -Og -g3 -Isrc src/*.c src/tools/*.c src/widgets/*.c -o paint `pkg-config --cflags --libs gtk4 libadwaita-1 libavutil libavcodec libavformat libswscale` $(WARN) $(WARN_FLAGS) $(SANITIZE) -Ibuild -fanalyzer -pg -Wno-unused-parameter #-Ibuild -pg
 
 #$(WARN) $(WARN_FLAGS) #-fanalyzer #$(SANITIZE)

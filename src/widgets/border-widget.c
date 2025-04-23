@@ -20,8 +20,8 @@ static void
 gpaint_border_widget_init (GpaintBorderWidget *self)
 {
   self->child = NULL;
-  self->border_width = 1;
   self->border_color = (GdkRGBA) { 0.0, 0.0, 0.0, 1.0 };
+  self->border_width = 1;
 }
 
 static void
@@ -68,8 +68,8 @@ static void
 gpaint_border_widget_snapshot (GtkWidget *widget, GtkSnapshot *snapshot)
 {
   GpaintBorderWidget *self = GPAINT_BORDER_WIDGET (widget);
-  const float width = gtk_widget_get_width (widget);
-  const float height = gtk_widget_get_height (widget);
+  const gfloat width = gtk_widget_get_width (widget);
+  const gfloat height = gtk_widget_get_height (widget);
 
   graphene_rect_t rect;
   graphene_rect_init (&rect, 0, 0, width, height);

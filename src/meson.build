@@ -22,20 +22,6 @@ gpaint_sources = [
   'widgets/number-entry.c',
 ]
 
-gpaint_deps = [
-  dependency('gtk4'),
-  cc.find_library('m')
-]
-
-gpaint_deps += dependency('libavutil')
-gpaint_deps += dependency('libavcodec')
-gpaint_deps += dependency('libavformat')
-gpaint_deps += dependency('libswscale')
-
-if adwaita_dep.found()
-  gpaint_deps += adwaita_dep
-endif
-
 executable('gpaint', gpaint_sources,
   dependencies: gpaint_deps,
        install: true,

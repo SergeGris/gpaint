@@ -76,8 +76,6 @@ typedef struct
   cairo_surface_t *main_surface;
   cairo_surface_t *preview_surface;
 
-  // int width, height; // TODO
-
   cairo_surface_t *selected_surface;
   gboolean has_selection;
   GdkRectangle selected_rect;
@@ -108,12 +106,6 @@ typedef struct
 
 #include "backup.h"
 #include "gpaint-cairo.h"
-
-#define GPAINT_GDK_RGBA_GREY(a) ((GdkRGBA) { a, a, a, 1.0 })
-#define GPAINT_GDK_TRANSPARENT ((GdkRGBA) { 0.0, 0.0, 0.0, 0.0 })
-#define GPAINT_GDK_BLACK ((GdkRGBA) { 0.0, 0.0, 0.0, 1.0 })
-#define GPAINT_TRANSPARENT_FIRST_COLOR 0.8
-#define GPAINT_TRANSPARENT_SECOND_COLOR 0.7
 
 static inline cairo_surface_t *
 gpaint_get_current_surface (AppState *state)

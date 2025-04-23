@@ -23,10 +23,11 @@
 #include "widgets/number-entry.h"
 #include "widgets/value-selector.h"
 
+#include "cursor.c"
 #include "zoom.c"
 
 #ifndef ADW_CHECK_VERSION
-# define ADW_CHECK_VERSION(major, minor, patch) 0
+#define ADW_CHECK_VERSION(major, minor, patch) 0
 #endif
 
 static void update_cursor (AppState *state);
@@ -236,16 +237,16 @@ on_toggle_show_grid (GSimpleAction *action, GVariant *parameter, gpointer user_d
   gtk_widget_queue_draw (state->drawing_area);
 }
 
-static void
-on_toggle_antialiasing (GSimpleAction *action, GVariant *parameter, gpointer user_data)
-{
-  AppState *state = (AppState *) user_data;
-  g_autoptr (GVariant) current = g_action_get_state (G_ACTION (action));
-  gboolean value = g_variant_get_boolean (current);
-  g_simple_action_set_state (action, g_variant_new_boolean (!value));
-  state->antialiasing = !value ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE; // TODO
-  gtk_widget_queue_draw (state->drawing_area);
-}
+/* static void */
+/* on_toggle_antialiasing (GSimpleAction *action, GVariant *parameter, gpointer user_data) */
+/* { */
+/*   AppState *state = (AppState *) user_data; */
+/*   g_autoptr (GVariant) current = g_action_get_state (G_ACTION (action)); */
+/*   gboolean value = g_variant_get_boolean (current); */
+/*   g_simple_action_set_state (action, g_variant_new_boolean (!value)); */
+/*   state->antialiasing = !value ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE; // TODO */
+/*   gtk_widget_queue_draw (state->drawing_area); */
+/* } */
 
 #if 0 // TODO
 
@@ -665,13 +666,14 @@ static const GActionEntry edit_actions[] = {
 };
 
 static const GActionEntry view_actions[] = {
-  { "showgrid",     on_toggle_show_grid,    NULL, "false", NULL },
-  { "antialiasing", on_toggle_antialiasing, NULL, "false", NULL },
+  { "showgrid",  on_toggle_show_grid, NULL, "false", NULL },
+  // TODO
+  /* { "antialiasing", on_toggle_antialiasing, NULL, "false", NULL }, */
 
   // TODO
-  { "zoomin",       on_zoom_in,             NULL, NULL,    NULL },
-  { "zoomout",      on_zoom_out,            NULL, NULL,    NULL },
-  { "zoomreset",    on_zoom_reset,          NULL, NULL,    NULL },
+  { "zoomin",    on_zoom_in,          NULL, NULL,    NULL },
+  { "zoomout",   on_zoom_out,         NULL, NULL,    NULL },
+  { "zoomreset", on_zoom_reset,       NULL, NULL,    NULL },
 };
 
 /* static const GActionEntry image_actions[] = */
@@ -793,17 +795,18 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
   cairo_save (cr);
   cairo_scale (cr, pixel_size, pixel_size);
   // TODO use draw_transparent_square
-  double color = bg[1];
+  double color = (pixel_size > 4.0) ? bg[1] : (bg[0] + bg[1]) / 2.0;
   cairo_set_source_rgb (cr, color, color, color);
   cairo_rectangle (cr, v.x, v.y, v.width, v.height);
   cairo_fill (cr);
   cairo_restore (cr);
 
+  // TODO. Kinda slow
   if (pixel_size > 4.0)
     {
       /* Draw checkerboard background */
       cairo_save (cr);
-      int k = 2; // TODO make it adaptive for zoom.
+      int k = (int) log2 (pixel_size); // TODO make it adaptive for zoom.
       cairo_scale (cr, pixel_size / k, pixel_size / k);
 
       int grid_width = (v.x + v.width) * k;
@@ -941,7 +944,7 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
       // First stroke: black dashes
       double dashes1[] = { 4.0 / pixel_size, 4.0 / pixel_size };
       cairo_set_dash (cr, dashes1, 2, 0); // No offset
-      cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+      gdk_cairo_set_source_rgba (cr, &GPAINT_GDK_BLACK);
       cairo_stroke_preserve (cr);
 
       // Second stroke: cyan dashes with offset
@@ -1330,7 +1333,7 @@ on_save_response (GObject *source_object, GAsyncResult *res, gpointer user_data)
     {
       error = NULL;
       puts (gpaint_formats[i].extensions[0]);
-      if (!save_surfaces_with_ffmpeg (g_strdup_printf ("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, &error))
+      if (!save_surfaces_with_ffmpeg (g_strdup_printf ("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, gpaint_formats[i].default_options, &error))
         g_warning ("Failed to save image %s", error->message);
     }
 
@@ -1747,23 +1750,94 @@ create_edit_toolbar (AppState *state)
   return edit_btn;
 }
 
+static const struct
+{
+  const char *label;
+  const char *key;
+  cairo_antialias_t value;
+} antialiasing_modes[] = {
+  { "None",     "none",     CAIRO_ANTIALIAS_NONE     },
+  { "Default",  "default",  CAIRO_ANTIALIAS_DEFAULT  },
+  { "Gray",     "gray",     CAIRO_ANTIALIAS_GRAY     },
+  { "Subpixel", "subpixel", CAIRO_ANTIALIAS_SUBPIXEL },
+  { "Fast",     "fast",     CAIRO_ANTIALIAS_FAST     },
+  { "Good",     "good",     CAIRO_ANTIALIAS_GOOD     },
+  { "Best",     "best",     CAIRO_ANTIALIAS_BEST     },
+};
+
+static void
+on_antialiasing_changed (GSimpleAction *action,
+                         GVariant *value,
+                         gpointer user_data)
+{
+  AppState *state = (AppState *) user_data;
+  const gchar *mode = g_variant_get_string (value, NULL);
+  g_simple_action_set_state (action, value);
+  // TODO
+  for (size_t i = 0; i < G_N_ELEMENTS (antialiasing_modes); i++)
+    if (g_strcmp0 (antialiasing_modes[i].key, mode) == 0)
+      state->antialiasing = antialiasing_modes[i].value;
+}
+
+static void
+setup_antialiasing_action (AppState *state)
+{
+  GSimpleAction *antialiasing_action = g_simple_action_new_stateful ("antialiasing",
+                                                                     G_VARIANT_TYPE_STRING,
+                                                                     g_variant_new_string (antialiasing_modes[0].key));
+  g_signal_connect (antialiasing_action, "change-state", G_CALLBACK (on_antialiasing_changed), state);
+  g_action_map_add_action (G_ACTION_MAP (state->application), G_ACTION (antialiasing_action));
+}
+
 static GtkWidget *
 create_view_toolbar (AppState *state)
 {
-  g_autoptr (GMenu) view = g_menu_new ();
+  // Create the main 'View' menu
+  g_autoptr (GMenu) view_menu = g_menu_new ();
+  g_menu_append (view_menu, "Show grid", "app.showgrid");
+  g_menu_append (view_menu, "Enable antialiasing", "app.antialiasing");
+  g_menu_append (view_menu, "Zoom in", "app.zoomin");
+  g_menu_append (view_menu, "Zoom out", "app.zoomout");
+  g_menu_append (view_menu, "Zoom reset", "app.zoomreset");
 
-  g_menu_append (view, "Show grid", "app.showgrid");
-  g_menu_append (view, "Enable antialiasing", "app.antialiasing");
+  g_autoptr (GMenu) antialiasing_menu = g_menu_new ();
 
-  g_menu_append (view, "Zoom in", "app.zoomin");
-  g_menu_append (view, "Zoom out", "app.zoomout");
-  g_menu_append (view, "Zoom reset", "app.zoomreset");
+  for (size_t i = 0; i < G_N_ELEMENTS (antialiasing_modes); i++)
+    {
+      g_autoptr (GMenuItem) item = g_menu_item_new (antialiasing_modes[i].label, "app.antialiasing");
+      g_menu_item_set_attribute_value (item, "target",
+                                       g_variant_new_string (antialiasing_modes[i].key));
+      g_menu_append_item (antialiasing_menu, item);
+    }
 
-  GtkWidget *view_btn = gtk_menu_button_new ();
-  gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (view_btn), G_MENU_MODEL (view));
-  gtk_menu_button_set_label (GTK_MENU_BUTTON (view_btn), "View");
-  return view_btn;
+  g_autoptr (GMenuItem) antialiasing_submenu = g_menu_item_new_submenu ("Antialiassafing", G_MENU_MODEL (antialiasing_menu));
+  g_menu_append_item (view_menu, antialiasing_submenu);
+
+  // Create the menu button and set the menu model
+  GtkWidget *view_button = gtk_menu_button_new ();
+  gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (view_button), G_MENU_MODEL (view_menu));
+  gtk_menu_button_set_label (GTK_MENU_BUTTON (view_button), "View");
+
+  return view_button;
 }
+
+/* static GtkWidget * */
+/* create_view_toolbar (AppState *state) */
+/* { */
+/*   g_autoptr (GMenu) view = g_menu_new (); */
+
+/*   g_menu_append (view, "Show grid", "app.showgrid"); */
+/*   g_menu_append (view, "Enable antialiasing", "app.antialiasing"); */
+
+/*   g_menu_append (view, "Zoom in", "app.zoomin"); */
+/*   g_menu_append (view, "Zoom out", "app.zoomout"); */
+/*   g_menu_append (view, "Zoom reset", "app.zoomreset"); */
+
+/*   GtkWidget *view_btn = gtk_menu_button_new (); */
+/*   gtk_menu_button_set_menu_model (GTK_MENU_BUTTON (view_btn), G_MENU_MODEL (view)); */
+/*   gtk_menu_button_set_label (GTK_MENU_BUTTON (view_btn), "View"); */
+/*   return view_btn; */
+/* } */
 
 static void
 create_menus (GtkWidget *header_bar, AppState *state)
@@ -1771,6 +1845,8 @@ create_menus (GtkWidget *header_bar, AppState *state)
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_file_toolbar (state));
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_edit_toolbar (state));
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header_bar), create_view_toolbar (state));
+
+  setup_antialiasing_action (state);
 }
 
 // TODO rename
@@ -1950,7 +2026,7 @@ on_resize (GSimpleAction *action, GVariant *parameter, gpointer user_data)
       n = snprintf (buffer, sizeof (buffer), "%d", t->current);
       gtk_entry_set_buffer (GTK_ENTRY (t->entry), gtk_entry_buffer_new (buffer, n));
 
-      g_object_set_data (G_OBJECT (t->entry), "keep_ratio_check", keep_ratio_check);
+      g_object_set_data (G_OBJECT (t->entry), "keep-ratio", keep_ratio_check);
       g_object_set_data (G_OBJECT (t->entry), "value", GINT_TO_POINTER (0));
 
       gtk_grid_attach (GTK_GRID (grid), gtk_label_new (t->label), 0, i, 1, 1);
@@ -1978,9 +2054,11 @@ on_resize (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 
   g_signal_connect (keep_ratio_check, "toggled", G_CALLBACK (on_keep_ratio_check_toggled), rd);
 
-  gtk_check_button_set_active (GTK_CHECK_BUTTON (keep_ratio_check),
-                               TRUE); // TODO: if true -- set up values in entries
-  on_keep_ratio_check_toggled (GTK_CHECK_BUTTON (keep_ratio_check), rd);
+  gboolean keep_ratio_check_enabled = TRUE;
+  gtk_check_button_set_active (GTK_CHECK_BUTTON (keep_ratio_check), keep_ratio_check_enabled);
+
+  if (keep_ratio_check_enabled)
+    on_keep_ratio_check_toggled (GTK_CHECK_BUTTON (keep_ratio_check), rd);
 
   gtk_grid_attach (GTK_GRID (grid), keep_ratio_check, 0, 2, 2, 1);
   gtk_grid_attach (GTK_GRID (grid), ok_button, 0, 3, 1, 1);
@@ -2000,7 +2078,7 @@ static void
 on_entry_changed (GtkEditable *editable, gpointer user_data)
 {
   GtkWidget *other_entry = GTK_WIDGET (user_data);
-  GtkWidget *keep_ratio_check = (GtkWidget *) g_object_get_data (G_OBJECT (other_entry), "keep_ratio_check");
+  GtkWidget *keep_ratio_check = (GtkWidget *) g_object_get_data (G_OBJECT (other_entry), "keep-ratio");
 
   if (gtk_check_button_get_active (GTK_CHECK_BUTTON (keep_ratio_check)))
     {
@@ -2162,8 +2240,9 @@ activate (GtkApplication *app, AppState *state)
   gtk_box_append (GTK_BOX (hbox), state->color_btn);
   gtk_box_append (GTK_BOX (hbox), create_color_grid (state));
 
-  g_autoptr (GdkCursor) cursor = gdk_cursor_new_from_name ("default", NULL);
-  gtk_box_append (GTK_BOX (hbox), gtk_image_new_from_paintable (GDK_PAINTABLE (gdk_cursor_get_texture (cursor)))); // TODO
+  // g_autoptr (GdkTexture) cursor = cursor_loader_get_texture (gdk_display_get_default(), "default");
+  // g_autoptr (GdkCursor) cursor = gdk_cursor_new_from_name ("default", NULL); // TODO
+  // TODO gtk_box_append (GTK_BOX (hbox), gtk_image_new_from_paintable (GDK_PAINTABLE (cursor))); // TODO
   gtk_box_append (GTK_BOX (hbox), state->image_info);
 
   gtk_box_append (GTK_BOX (hbox), state->current_position);
@@ -2230,12 +2309,11 @@ activate (GtkApplication *app, AppState *state)
   {
     const GActionEntry *actions;
     gint count;
-  } entries[] =
-    {
-      { .actions = file_actions, G_N_ELEMENTS (file_actions) },
-      { .actions = edit_actions, G_N_ELEMENTS (edit_actions) },
-      { .actions = view_actions, G_N_ELEMENTS (view_actions) },
-    };
+  } entries[] = {
+    { .actions = file_actions, G_N_ELEMENTS (file_actions) },
+    { .actions = edit_actions, G_N_ELEMENTS (edit_actions) },
+    { .actions = view_actions, G_N_ELEMENTS (view_actions) },
+  };
 
   for (size_t i = 0; i < G_N_ELEMENTS (entries); i++)
     g_action_map_add_action_entries (G_ACTION_MAP (app), entries[i].actions, entries[i].count, state);
@@ -2262,9 +2340,10 @@ main (int argc, char **argv)
 {
   setlocale (LC_ALL, "");
 
-  bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-  textdomain (GETTEXT_PACKAGE);
+  // TODO
+  /* bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR); */
+  /* bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8"); */
+  /* textdomain (GETTEXT_PACKAGE); */
 
   // TODO
   /* for (size_t k = 0; k < G_N_ELEMENTS (gpaint_formats); k++) */
@@ -2286,8 +2365,8 @@ main (int argc, char **argv)
   state.main_surface = create_surface (64, 64);
   state.p_color = &state.primary_color;
   state.s_color = &state.secondary_color;
-  state.primary_color = (GdkRGBA) { 0.0, 0.0, 0.0, 1.0 };
-  state.secondary_color = (GdkRGBA) { 0.0, 0.0, 0.0, 0.0 };
+  state.primary_color = GPAINT_GDK_BLACK;
+  state.secondary_color = GPAINT_GDK_TRANSPARENT;
   state.zoom_level = 1.0;
   state.width = 1.0;
   state.brush_size = 3.0;
@@ -2305,20 +2384,23 @@ main (int argc, char **argv)
   state.antialiasing = CAIRO_ANTIALIAS_NONE;
   /* TODO state.last_drag_time = 0; */
 
-  ToolEntry tools[] = {
-    [TOOL_FREEHAND] = { "Freehand",           &global_freehand_tool           },
-    [TOOL_BRUSH] = { "Brush",              &global_brush_tool              },
-    [TOOL_LINE] = { "Line",               &global_line_tool               },
-    [TOOL_RECTANGLE] = { "Rectangle",          &global_rectangle_tool          },
-    [TOOL_ELLIPSE] = { "Ellipse",            &global_ellipse_tool            },
-    [TOOL_TRIANGLE] = { "Triangle",           &global_triangle_tool           },
-    [TOOL_ERASER] = { "Eraser",             &global_eraser_tool             },
-    [TOOL_PICKER] = { "Picker",             &global_picker_tool             },
-    [TOOL_BUCKET] = { "Bucket",             &global_bucket_tool             },
-    [TOOL_SELECT_RECTANGLE] = { "Select rectangle",   &global_select_rectangle_tool   },
-    [TOOL_DRAG] = { "Drag",               &global_drag_tool               },
-    [TOOL_SYMMETRIC_FREEHAND] = { "Symmetric freehand", &global_symmetric_freehand_tool },
-  };
+  // clang-format off
+  ToolEntry tools[] =
+    {
+      [TOOL_FREEHAND]		= { "Freehand",			&global_freehand_tool		},
+      [TOOL_BRUSH]		= { "Brush",			&global_brush_tool		},
+      [TOOL_LINE]		= { "Line",			&global_line_tool		},
+      [TOOL_RECTANGLE]		= { "Rectangle",		&global_rectangle_tool		},
+      [TOOL_ELLIPSE]		= { "Ellipse",			&global_ellipse_tool		},
+      [TOOL_TRIANGLE]		= { "Triangle",			&global_triangle_tool		},
+      [TOOL_ERASER]		= { "Eraser",			&global_eraser_tool		},
+      [TOOL_PICKER]		= { "Picker",			&global_picker_tool		},
+      [TOOL_BUCKET]		= { "Bucket",			&global_bucket_tool		},
+      [TOOL_SELECT_RECTANGLE]	= { "Select rectangle",		&global_select_rectangle_tool	},
+      [TOOL_DRAG]		= { "Drag",			&global_drag_tool		},
+      [TOOL_SYMMETRIC_FREEHAND]	= { "Symmetric freehand",	&global_symmetric_freehand_tool },
+    };
+  // clang-format on
 
   G_STATIC_ASSERT (G_N_ELEMENTS (tools) == TOOLS_COUNT);
 

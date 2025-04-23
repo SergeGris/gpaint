@@ -3,6 +3,12 @@
 
 #include <cairo.h>
 
+#define GPAINT_GDK_RGBA_GREY(a) ((GdkRGBA) { a, a, a, 1.0 })
+#define GPAINT_GDK_TRANSPARENT ((GdkRGBA) { 0.0, 0.0, 0.0, 0.0 })
+#define GPAINT_GDK_BLACK ((GdkRGBA) { 0.0, 0.0, 0.0, 1.0 })
+#define GPAINT_TRANSPARENT_FIRST_COLOR (84.0 / 255.0)
+#define GPAINT_TRANSPARENT_SECOND_COLOR (168.0 / 255.0)
+
 static inline cairo_t *
 create_cairo (cairo_surface_t *surface, cairo_operator_t op, cairo_antialias_t antialiasing)
 {
@@ -17,7 +23,7 @@ create_surface (gint height, gint width)
 {
   cairo_surface_t *surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, height, width);
   cairo_t *cr = create_cairo (surface, CAIRO_OPERATOR_SOURCE, CAIRO_ANTIALIAS_NONE);
-  cairo_set_source_rgba (cr, 0.0, 0.0, 0.0, 0.0);
+  gdk_cairo_set_source_rgba (cr, &GPAINT_GDK_TRANSPARENT);
   cairo_paint (cr);
   cairo_destroy (cr);
   return surface;
@@ -42,10 +48,10 @@ draw_transparent_square (cairo_t *cr, double px, double py, double pw, double ph
 {
   cairo_save (cr);
   GdkRectangle v = {
-    .x = (gint) (px / scale),
-    .y = (gint) (py / scale),
-    .width = (gint) (pw / scale),
-    .height = (gint) (ph / scale),
+    .x = (int) (px / scale),
+    .y = (int) (py / scale),
+    .width = (int) (pw / scale),
+    .height = (int) (ph / scale),
   };
 
   scale = 16.0; // TODO
@@ -53,7 +59,7 @@ draw_transparent_square (cairo_t *cr, double px, double py, double pw, double ph
   cairo_save (cr);
   cairo_scale (cr, scale, scale);
 
-  gdouble bg[] = { 0x54 / 255.0, 0xA8 / 255.0 };
+  const double bg[] = { 0x54 / 255.0, 0xA8 / 255.0 };
 
   cairo_set_source_rgb (cr, bg[0], bg[0], bg[0]);
   cairo_rectangle (cr, v.x, v.y, v.width, v.height);
@@ -62,20 +68,20 @@ draw_transparent_square (cairo_t *cr, double px, double py, double pw, double ph
 
   /* Draw checkerboard background */
   cairo_save (cr);
-  gint k = 2; // TODO make it adaptive for zoom.
+  int k = 2; // TODO make it adaptive for zoom.
   cairo_scale (cr, scale / k, scale / k);
 
-  gint grid_width = (v.x + v.width) * k;
-  gint grid_height = (v.y + v.height) * k;
+  int grid_width = (v.x + v.width) * k;
+  int grid_height = (v.y + v.height) * k;
 
   cairo_new_path (cr);
-  const gdouble dash[] = { 1.0, 1.0 };
+  const double dash[] = { 1.0, 1.0 };
   cairo_set_dash (cr, dash, 1, 0);
   cairo_set_line_width (cr, 1.0);
 
-  for (gint y = v.y * k; y < grid_height; y++)
+  for (int y = v.y * k; y < grid_height; y++)
     {
-      gdouble x0, x1, y0, y1;
+      double x0, x1, y0, y1;
 
       x0 = v.x * k + (y & 1);
       x1 = grid_width;
@@ -96,7 +102,7 @@ draw_transparent_square (cairo_t *cr, double px, double py, double pw, double ph
 static inline void
 draw_colored_square (cairo_t *cr, const GdkRGBA *color, gdouble px, gdouble py, gdouble pw, gdouble ph, gdouble scale)
 {
-  if ((int) roundf (255.0f * color->alpha) == 255)
+  if ((int) round (255.0 * color->alpha) == 255)
     {
       cairo_save (cr);
       gdk_cairo_set_source_rgba (cr, color);
@@ -109,38 +115,76 @@ draw_colored_square (cairo_t *cr, const GdkRGBA *color, gdouble px, gdouble py, 
 }
 
 static inline void
-set_pixel_color (guint8 *data, gint x, gint y, gint stride, const GdkRGBA *color)
+set_pix_clr (guint8 *data, gint x, gint y, gint stride, guint32 color)
 {
-  gint idx = y * stride + x * 4;
-  data[idx + 0] = (guint8) (int) roundf (color->blue * 255.0f);
-  data[idx + 1] = (guint8) (int) roundf (color->green * 255.0f);
-  data[idx + 2] = (guint8) (int) roundf (color->red * 255.0f);
-  data[idx + 3] = (guint8) (int) roundf (color->alpha * 255.0f);
+  *(uint32_t *) (data + y * stride + x * 4) = color;
+}
+
+static inline guint32
+get_pix_clr (guint8 *data, gint x, gint y, gint stride)
+{
+  return *(uint32_t *) (data + y * stride + x * 4);
+}
+
+static inline guint32
+gdk_rgba_to_clr (const GdkRGBA *rgba)
+{
+  guint32 r = (guint32) round (rgba->red * 255.0);
+  guint32 g = (guint32) round (rgba->green * 255.0);
+  guint32 b = (guint32) round (rgba->blue * 255.0);
+  guint32 a = (guint32) round (rgba->alpha * 255.0);
+
+  return (a << 24) | (r << 16) | (g << 8) | b; // ARGB format
+}
+
+/* static inline void */
+/* set_pixel_color (guint8 *data, gint x, gint y, gint stride, const GdkRGBA *color) */
+/* { */
+/*   gint idx = y * stride + x * 4; */
+/*   data[idx + 0] = (guint8) (int) round (color->blue * 255.0); */
+/*   data[idx + 1] = (guint8) (int) round (color->green * 255.0); */
+/*   data[idx + 2] = (guint8) (int) round (color->red * 255.0); */
+/*   data[idx + 3] = (guint8) (int) round (color->alpha * 255.0); */
+/* } */
+
+static inline GdkRGBA
+get_pixel_color (const guchar *data, gint x, gint y, gint stride)
+{
+  /* CAIRO_FORMAT_ARGB32 stores pixels in BGRA order on little-endian systems */
+  int offset = y * stride + x * 4;
+  GdkRGBA color = {
+    .alpha = (double) data[offset + 3] / 255.0,
+    .red = (double) data[offset + 2] / 255.0,
+    .green = (double) data[offset + 1] / 255.0,
+    .blue = (double) data[offset + 0] / 255.0,
+  };
+
+  return color;
 }
 
 static inline gboolean
 rgba_equal (const GdkRGBA *rgba1, const GdkRGBA *rgba2)
 {
-  int r1 = (int) roundf (rgba1->red * 255.0f);
-  int r2 = (int) roundf (rgba2->red * 255.0f);
+  int r1 = (int) round (rgba1->red * 255.0);
+  int r2 = (int) round (rgba2->red * 255.0);
 
   if (r1 != r2)
     return FALSE;
 
-  int g1 = (int) roundf (rgba1->green * 255.0f);
-  int g2 = (int) roundf (rgba2->green * 255.0f);
+  int g1 = (int) round (rgba1->green * 255.0);
+  int g2 = (int) round (rgba2->green * 255.0);
 
   if (g1 != g2)
     return FALSE;
 
-  int b1 = (int) roundf (rgba1->blue * 255.0f);
-  int b2 = (int) roundf (rgba2->blue * 255.0f);
+  int b1 = (int) round (rgba1->blue * 255.0);
+  int b2 = (int) round (rgba2->blue * 255.0);
 
   if (b1 != b2)
     return FALSE;
 
-  int a1 = (int) roundf (rgba1->alpha * 255.0f);
-  int a2 = (int) roundf (rgba2->alpha * 255.0f);
+  int a1 = (int) round (rgba1->alpha * 255.0);
+  int a2 = (int) round (rgba2->alpha * 255.0);
 
   return a1 == a2;
 }

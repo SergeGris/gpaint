@@ -20,8 +20,16 @@ config_h.set_quoted('LOCALEDIR', get_option('prefix') / get_option('localedir'))
 adwaita_dep = dependency('libadwaita-1', required: false)
 config_h.set('HAVE_ADWAITA', adwaita_dep.found() ? 1 : 0)
 
+x11_dep = dependency('xcursor', required: false)
+config_h.set('HAVE_XCURSOR', x11_dep.found() ? 1 : 0)
+wayland_dep = dependency('wayland-cursor', required: false)
+config_h.set('HAVE_WAYLAND_CURSOR', wayland_dep.found() ? 1 : 0)
+
 configure_file(output: 'config.h', configuration: config_h)
 add_project_arguments(['-I' + project_build_root, '-DHAVE_CONFIG_H=1'], language: 'c') # TODO
+
+add_project_arguments(['-pg'], language: 'c')
+add_project_link_arguments(['-pg'], language: 'c')
 
 project_c_args = []
 test_c_args = [
@@ -87,6 +95,28 @@ foreach arg: test_c_args
   endif
 endforeach
 add_project_arguments(project_c_args, language: 'c')
+
+gpaint_deps = [
+  dependency('gtk4'),
+  cc.find_library('m')
+]
+
+gpaint_deps += dependency('libavutil')
+gpaint_deps += dependency('libavcodec')
+gpaint_deps += dependency('libavformat')
+gpaint_deps += dependency('libswscale')
+
+if adwaita_dep.found()
+  gpaint_deps += adwaita_dep
+endif
+
+if x11_dep.found()
+  gpaint_deps += x11_dep
+endif
+
+if wayland_dep.found()
+  gpaint_deps += wayland_dep
+endif
 
 # TODO subdir('data')
 subdir('src')

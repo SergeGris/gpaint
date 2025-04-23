@@ -2,6 +2,7 @@
 
 #include "tools-internal.h"
 
+static const struct raw_bitmap grab_data;
 static void draw_drag_handler (AppState *state, gint x0, gint y0, gint x1, gint y1);
 static void drag_begin (AppState *state);
 static void drag_update (AppState *state, gdouble dx, gdouble dy);
@@ -22,32 +23,33 @@ const Tool global_drag_tool = {
 static void
 draw_drag_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
 {
+  return;
 }
 
-/*
- * update_adjustments:
- *   Given a delta (dx, dy) in pixels, compute new adjustment values
- *   by subtracting the delta from the current value, and clamp the result
- *   within the allowed scrolling range: [lower, (upper - page_size)].
- */
-// TODO
-static void
-update_adjustments (AppState *state, double dx, double dy)
-{
-  double curr_x = gtk_adjustment_get_value (state->hadj);
-  double curr_y = gtk_adjustment_get_value (state->vadj);
+/* /\* */
+/*  * update_adjustments: */
+/*  *   Given a delta (dx, dy) in pixels, compute new adjustment values */
+/*  *   by subtracting the delta from the current value, and clamp the result */
+/*  *   within the allowed scrolling range: [lower, (upper - page_size)]. */
+/*  *\/ */
+/* // TODO */
+/* static void */
+/* update_adjustments (AppState *state, double dx, double dy) */
+/* { */
+/*   double curr_x = gtk_adjustment_get_value (state->hadj); */
+/*   double curr_y = gtk_adjustment_get_value (state->vadj); */
 
-  double lower_x = gtk_adjustment_get_lower (state->hadj);
-  double upper_x = gtk_adjustment_get_upper (state->hadj) - gtk_adjustment_get_page_size (state->hadj);
-  double lower_y = gtk_adjustment_get_lower (state->vadj);
-  double upper_y = gtk_adjustment_get_upper (state->vadj) - gtk_adjustment_get_page_size (state->vadj);
+/*   double lower_x = gtk_adjustment_get_lower (state->hadj); */
+/*   double upper_x = gtk_adjustment_get_upper (state->hadj) - gtk_adjustment_get_page_size (state->hadj); */
+/*   double lower_y = gtk_adjustment_get_lower (state->vadj); */
+/*   double upper_y = gtk_adjustment_get_upper (state->vadj) - gtk_adjustment_get_page_size (state->vadj); */
 
-  double new_x = CLAMP (curr_x - dx, lower_x, upper_x);
-  double new_y = CLAMP (curr_y - dy, lower_y, upper_y);
+/*   double new_x = CLAMP (curr_x - dx, lower_x, upper_x); */
+/*   double new_y = CLAMP (curr_y - dy, lower_y, upper_y); */
 
-  gtk_adjustment_set_value (state->hadj, new_x);
-  gtk_adjustment_set_value (state->vadj, new_y);
-}
+/*   gtk_adjustment_set_value (state->hadj, new_x); */
+/*   gtk_adjustment_set_value (state->vadj, new_y); */
+/* } */
 
 /* Inertial scrolling callback:
    Applies friction and updates the adjustments with the decaying velocity.
@@ -133,7 +135,7 @@ static const guchar grab_bytes[] =
   {
     0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x18, 0x08, 0x06, 0x00, 0x00, 0x00, 0xE0, 0x77, 0x3D, 0xF8, 0x00, 0x00, 0x00, 0x04, 0x73, 0x42, 0x49, 0x54, 0x08, 0x08, 0x08, 0x08, 0x7C, 0x08, 0x64, 0x88, 0x00, 0x00, 0x00, 0x81, 0x49, 0x44, 0x41, 0x54, 0x48, 0xC7, 0xED, 0x54, 0x41, 0x0A, 0xC0, 0x30, 0x08, 0x33, 0xA5, 0xFF, 0xFF, 0x72, 0x76, 0x98, 0x07, 0x29, 0xDB, 0xAA, 0xD6, 0xC1, 0x0A, 0x13, 0x7A, 0x2B, 0x89, 0x89, 0x51, 0x91, 0x58, 0x51, 0x9F, 0xBB, 0x10, 0x01, 0x27, 0x4F, 0x6C, 0x00, 0x6E, 0x8C, 0x96, 0xED, 0x9A, 0xA4, 0x28, 0x21, 0x57, 0x08, 0x68, 0x80, 0x52, 0xD6, 0x35, 0x29, 0xA8, 0x27, 0x35, 0x25, 0x04, 0xAB, 0x33, 0xF8, 0x09, 0x36, 0x27, 0xE8, 0x17, 0x79, 0xCE, 0x6C, 0xB9, 0x5F, 0xC1, 0x5D, 0xA6, 0xED, 0xB2, 0x39, 0x16, 0x6F, 0x6E, 0x91, 0x17, 0x64, 0xF6, 0x6F, 0x24, 0x80, 0x3D, 0x64, 0x91, 0x4E, 0x23, 0x0A, 0x30, 0x5C, 0xCB, 0x3D, 0x63, 0x5A, 0xA6, 0xA2, 0x4C, 0x81, 0x36, 0x84, 0x08, 0x41, 0x89, 0x8A, 0xD7, 0x67, 0x00, 0x5F, 0xD4, 0x99, 0xB2, 0xE7, 0x3B, 0x0A, 0x56, 0xB0, 0x0E, 0x79, 0x65, 0x3B, 0x11, 0xB5, 0x77, 0x8C, 0x06, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
   };
-const struct raw_bitmap grab_data =
+static const struct raw_bitmap grab_data =
   {
     .hotspot_x = 0,
     .hotspot_y = 15,
