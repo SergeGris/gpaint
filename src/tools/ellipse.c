@@ -18,8 +18,8 @@ static void
 draw_ellipse (AppState *state, gint x0, gint y0, gint x1, gint y1)
 {
   // Compute the bounding box and ellipse center
-  gint min_x = MIN (x0, x1);
-  gint min_y = MIN (y0, y1);
+  gint min_x = min_int (x0, x1);
+  gint min_y = min_int (y0, y1);
   gint dx = abs (x1 - x0);
   gint dy = abs (y1 - y0);
   gdouble cx = min_x + dx / 2.0;

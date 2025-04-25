@@ -26,57 +26,72 @@ draw_drag_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
   return;
 }
 
-/* /\* */
-/*  * update_adjustments: */
-/*  *   Given a delta (dx, dy) in pixels, compute new adjustment values */
-/*  *   by subtracting the delta from the current value, and clamp the result */
-/*  *   within the allowed scrolling range: [lower, (upper - page_size)]. */
-/*  *\/ */
-/* // TODO */
-/* static void */
-/* update_adjustments (AppState *state, double dx, double dy) */
-/* { */
-/*   double curr_x = gtk_adjustment_get_value (state->hadj); */
-/*   double curr_y = gtk_adjustment_get_value (state->vadj); */
+/*
+ * update_adjustments:
+ *   Given a delta (dx, dy) in pixels, compute new adjustment values
+ *   by subtracting the delta from the current value, and clamp the result
+ *   within the allowed scrolling range: [lower, (upper - page_size)].
+ */
+// TODO
+static void
+update_adjustments (AppState *state, double dx, double dy)
+{
+  double curr_x = gtk_adjustment_get_value (state->hadj);
+  double curr_y = gtk_adjustment_get_value (state->vadj);
 
-/*   double lower_x = gtk_adjustment_get_lower (state->hadj); */
-/*   double upper_x = gtk_adjustment_get_upper (state->hadj) - gtk_adjustment_get_page_size (state->hadj); */
-/*   double lower_y = gtk_adjustment_get_lower (state->vadj); */
-/*   double upper_y = gtk_adjustment_get_upper (state->vadj) - gtk_adjustment_get_page_size (state->vadj); */
+  double lower_x = gtk_adjustment_get_lower (state->hadj);
+  double upper_x = gtk_adjustment_get_upper (state->hadj) - gtk_adjustment_get_page_size (state->hadj);
+  double lower_y = gtk_adjustment_get_lower (state->vadj);
+  double upper_y = gtk_adjustment_get_upper (state->vadj) - gtk_adjustment_get_page_size (state->vadj);
 
-/*   double new_x = CLAMP (curr_x - dx, lower_x, upper_x); */
-/*   double new_y = CLAMP (curr_y - dy, lower_y, upper_y); */
+  double new_x = CLAMP (curr_x - dx, lower_x, upper_x);
+  double new_y = CLAMP (curr_y - dy, lower_y, upper_y);
 
-/*   gtk_adjustment_set_value (state->hadj, new_x); */
-/*   gtk_adjustment_set_value (state->vadj, new_y); */
-/* } */
+  gtk_adjustment_set_value (state->hadj, new_x);
+  gtk_adjustment_set_value (state->vadj, new_y);
+  gtk_widget_queue_draw (state->drawing_area); // TODO
+}
 
 /* Inertial scrolling callback:
    Applies friction and updates the adjustments with the decaying velocity.
    Clamping is applied on every update.
 */
-/* static gboolean */
-/* inertial_scroll_callback(gpointer user_data) */
-/* { */
-/*     AppState *state = (AppState *) user_data; */
-/*     double dt = 0.016; // assume 16ms per frame */
-/*     // Apply friction factor (e.g., 0.95) */
-/*     state->velocity_x *= 0.95; */
-/*     state->velocity_y *= 0.95; */
+static gboolean
+inertial_scroll_callback(gpointer user_data)
+{
+    AppState *state = (AppState *) user_data;
+    double dt = 0.016; // assume 16ms per frame
+    // Apply friction factor (e.g., 0.95)
+    state->velocity_x *= 0.95;
+    state->velocity_y *= 0.95;
 
-/*     // Update adjustments using velocity */
-/*     update_adjustments(state, state->velocity_x * dt, state->velocity_y *
- * dt); */
+    // Update adjustments using velocity
+    update_adjustments(state, state->velocity_x * dt, state->velocity_y *
+dt);
 
-/*     // Stop inertial scrolling if velocities are very low */
-/*     if (fabs(state->velocity_x) < 1.0 && fabs(state->velocity_y) < 1.0) */
-/*         return G_SOURCE_REMOVE; */
-/*     return G_SOURCE_CONTINUE; */
-/* } */
+    // Stop inertial scrolling if velocities are very low
+    if (fabs(state->velocity_x) < 1.0 && fabs(state->velocity_y) < 1.0)
+      {
+        state->inertia_timeout_id = 0;
+        return G_SOURCE_REMOVE;
+      }
+    return G_SOURCE_CONTINUE;
+}
 
 static void
 drag_begin (AppState *state)
 {
+  if (state->inertial)
+    {
+      if (state->inertia_timeout_id) {
+        g_source_remove(state->inertia_timeout_id);
+        state->inertia_timeout_id = 0;
+      }
+
+      state->velocity_x = state->velocity_y = 0.0;
+      state->last_drag_time = g_get_monotonic_time();
+    }
+
   g_autoptr (GdkCursor) cursor = gdk_cursor_new_from_name ("grabbing", NULL);
   gtk_widget_set_cursor (state->drawing_area, cursor);
 }
@@ -84,6 +99,11 @@ drag_begin (AppState *state)
 static void
 drag_update (AppState *state, gdouble dx, gdouble dy)
 {
+  // TODO...
+  printf("%lf %lf\n", dx, dy); // TODO
+  if ((fabs (dx) + fabs(dy)) < 1.0)
+    return;
+
   // TODO
   /*
    *   Called repeatedly during a drag gesture. It receives incremental x
@@ -92,29 +112,47 @@ drag_update (AppState *state, gdouble dx, gdouble dy)
    * computes an instantaneous velocity based on the time difference.
    */
 
-  /* // Update scrolling based on drag delta */
-  /* update_adjustments(state, x, y); */
+  /* /\* // Update scrolling based on drag delta *\/ */
+  /* /\* update_adjustments(state, x, y); *\/ */
 
   /* // Get current time in microseconds */
   /* gint64 now = g_get_monotonic_time(); */
-  /* double dt = (state->last_drag_time > 0) ? (now - state->last_drag_time) /
-   * 1000000.0 : 0.016; */
+  /* double dt = (state->last_drag_time > 0) ? (now - state->last_drag_time) / 1000000.0 : 0.016; */
 
   /* // Compute instantaneous velocity (pixels per second) */
   /* if (dt > 0) { */
-  /*     state->velocity_x = x / dt; */
-  /*     state->velocity_y = y / dt; */
+  /*     state->velocity_x = dx / dt; */
+  /*     state->velocity_y = dy / dt; */
   /* } */
 
   /* // Store current time for next update */
   /* state->last_drag_time = now; */
 
-  // TODO
-  double x_offset = gtk_adjustment_get_value (state->hadj);
-  double y_offset = gtk_adjustment_get_value (state->vadj);
+  /* // TODO */
+  /* double x_offset = gtk_adjustment_get_value (state->hadj); */
+  /* double y_offset = gtk_adjustment_get_value (state->vadj); */
 
-  gtk_adjustment_set_value (state->hadj, x_offset - dx);
-  gtk_adjustment_set_value (state->vadj, y_offset - dy);
+  /* gtk_adjustment_set_value (state->hadj, x_offset - dx); */
+  /* gtk_adjustment_set_value (state->vadj, y_offset - dy); */
+
+  if (state->inertial)
+    {
+      // Current time and delta-time in seconds
+      const gint64 now = g_get_monotonic_time();
+      double dt = (now - state->last_drag_time) * 1.0e-6;
+      if (dt < 1e-3) dt = 1e-3;  // prevent division-by-zero spikes
+
+      update_adjustments(state, dx, dy);
+
+      // Compute new velocity (pixels per second)
+      state->velocity_x = dx / dt;
+      state->velocity_y = dy / dt;
+
+      // Store time for next iteration
+      state->last_drag_time = now;
+    }
+  else
+    update_adjustments(state, dx, dy);
 }
 
 static void
@@ -124,10 +162,12 @@ drag_end (AppState *state)
   gtk_widget_set_cursor (state->drawing_area, cursor);
 
   // TODO
-  /* state->last_drag_time = 0; */
-  /* if (fabs(state->velocity_x) > 0.0 || fabs(state->velocity_y) > 0.0) */
-  /*   state->inertia_timeout_id = g_timeout_add(16, inertial_scroll_callback,
-   * state); */
+  if (state->inertial)
+    {
+  state->last_drag_time = 0;
+  if (fabs(state->velocity_x) > 0.0 || fabs(state->velocity_y) > 0.0)
+    state->inertia_timeout_id = g_timeout_add(16, inertial_scroll_callback, state);
+    }
 }
 
 // clang-format off

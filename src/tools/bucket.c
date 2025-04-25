@@ -38,7 +38,7 @@ draw_bucket_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
   guchar *preview_data = cairo_image_surface_get_data (state->preview_surface);
   gint stride = cairo_image_surface_get_stride (state->preview_surface);
 
-  const guint32 target_color = get_pix_clr (preview_data, x1, y1, stride);
+  const guint32 target_color = get_pix_clr (preview_data, x1, y1, stride, gpaint_cairo_get_bytes_per_pixel (state->preview_surface));
 
   guint32 color = gdk_rgba_to_clr (state->p_color);
 
@@ -46,34 +46,43 @@ draw_bucket_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
   if (target_color == color)
     return;
 
-  GQueue *queue = g_queue_new ();
-  Point *start = g_new (Point, 1);
-  *start = (Point) { x1, y1 };
-  g_queue_push_tail (queue, start);
+  size_t capacity = 256, head = 0, tail = 0;
+  Point *buffer = g_new (Point, capacity);
 
-  while (!g_queue_is_empty (queue))
+  /* GQueue *queue = g_queue_new (); */
+  /* Point *start = g_new (Point, 1); */
+  /* *start = (Point) { x1, y1 }; */
+  /* g_queue_push_tail (queue, start); */
+
+  buffer[tail++] = (Point) { x1, y1 };
+
+  while (head != tail)
     {
-      Point *current = (Point *) g_queue_pop_head (queue);
-      gint x = current->x;
-      gint y = current->y;
-      g_free (current);
+      /* Point *current = (Point *) g_queue_pop_head (queue); */
+      Point p = buffer[head++];
+      if (head == capacity)
+        head = 0;
+
+      gint x = p.x;
+      gint y = p.y;
 
       if (x < 0 || x >= width || y < 0 || y >= height)
         continue;
 
-      guint32 current_color = get_pix_clr (preview_data, x, y, stride);
+      guint32 current_color = get_pix_clr (preview_data, x, y, stride, gpaint_cairo_get_bytes_per_pixel (state->preview_surface));
 
       if (current_color != target_color)
         continue;
 
-      set_pix_clr (preview_data, x, y, stride, color);
+      set_pix_clr (preview_data, x, y, stride, gpaint_cairo_get_bytes_per_pixel (state->preview_surface), color);
 
-      const Point neighbors[] = {
-        { x - 1, y     },
-        { x + 1, y     },
-        { x,     y - 1 },
-        { x,     y + 1 }
-      };
+      const Point neighbors[] =
+        {
+          { x - 1, y     },
+          { x + 1, y     },
+          { x,     y - 1 },
+          { x,     y + 1 }
+        };
 
       for (size_t i = 0; i < G_N_ELEMENTS (neighbors); i++)
         {
@@ -82,19 +91,44 @@ draw_bucket_handler (AppState *state, gint x0, gint y0, gint x1, gint y1)
 
           if (nx >= 0 && nx < width && ny >= 0 && ny < height)
             {
-              const guint32 neighbor_color = get_pix_clr (preview_data, nx, ny, stride);
+              const guint32 neighbor_color = get_pix_clr (preview_data, nx, ny, stride, gpaint_cairo_get_bytes_per_pixel (state->preview_surface));
 
               if (neighbor_color != target_color)
                 continue;
 
-              Point *np = g_new (Point, 1);
-              *np = (Point) { nx, ny };
-              g_queue_push_tail (queue, np);
+              // Before enqueue, check if buffer is full
+              size_t next_tail = (tail + 1) % capacity;
+
+              if (next_tail == head)
+                {
+                  // Buffer full
+                  size_t new_cap = capacity * 2;
+                  Point *new_buf = g_renew (Point, buffer, new_cap);
+
+                  // TODO: required?
+                  // If head > tail, move wrapped-around segment
+                  if (head > tail)
+                    {
+                      // TODO
+                      /* // Move [0..tail) to [capacity..capacity+tail) */
+                      /* memcpy (new_buf + capacity, new_buf, tail * sizeof (*buffer)); */
+                      /* tail = capacity + tail; */
+                      tail = capacity + 1;
+                    }
+
+                  buffer = new_buf;
+                  capacity = new_cap;
+                  next_tail = (tail + 1) % capacity;
+                }
+
+              // Enqueue at tail
+              buffer[tail] = (Point) { nx, ny };
+              tail = next_tail;
             }
         }
     }
 
-  g_queue_free (queue);
+  g_free (buffer);
   cairo_surface_mark_dirty (state->preview_surface);
   gtk_widget_queue_draw (state->drawing_area);
 }

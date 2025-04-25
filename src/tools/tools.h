@@ -1,8 +1,9 @@
 
 #pragma once
 
-#include "gpaint.h"
 #include <glib.h>
+
+#include "gpaint.h"
 
 typedef enum
 {

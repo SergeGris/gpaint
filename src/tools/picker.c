@@ -29,9 +29,10 @@ handle (AppState *state, gint x, gint y)
   if (x < 0 || x >= width || y < 0 || y >= height)
     return;
 
-  gint stride = cairo_image_surface_get_stride (state->main_surface);
   const guchar *data = cairo_image_surface_get_data (state->main_surface);
-  *state->p_color = get_pixel_color (data, x, y, stride);
+  *state->p_color = get_pixel_color (data, x, y,
+                                     cairo_image_surface_get_stride (state->main_surface),
+                                     gpaint_cairo_get_color_depth (state->main_surface));
   gtk_color_dialog_button_set_rgba (GTK_COLOR_DIALOG_BUTTON (state->color_btn), state->p_color);
 }
 

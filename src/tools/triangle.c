@@ -4,14 +4,15 @@
 static const struct raw_bitmap triangle_data;
 static void draw_triangle_handler (AppState *state, gint x0, gint y0, gint x1, gint y1);
 
-const Tool global_triangle_tool = {
-  .type = TOOL_TRIANGLE,
-  .icon = &triangle_data,
-  .cursor_name = "crosshair",
-  .draw_handler = draw_triangle_handler,
-  .motion_handler = NULL,
-  .is_drawing = TRUE,
-};
+const Tool global_triangle_tool =
+  {
+    .type = TOOL_TRIANGLE,
+    .icon = &triangle_data,
+    .cursor_name = "crosshair",
+    .draw_handler = draw_triangle_handler,
+    .motion_handler = NULL,
+    .is_drawing = TRUE,
+  };
 
 /* static void */
 /* draw_triangle_handler (AppState *state, gint x0, gint y0, gint x1, gint y1) */

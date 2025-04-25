@@ -50,8 +50,7 @@ value_selector_init (ValueSelector *selector)
   g_signal_connect (factory, "bind", G_CALLBACK (factory_bind), NULL);
 
   /* Create dropdown with image factory */
-  selector->dropdown = GTK_DROP_DOWN (
-      gtk_drop_down_new (G_LIST_MODEL (selector->model), NULL));
+  selector->dropdown = GTK_DROP_DOWN (gtk_drop_down_new (G_LIST_MODEL (selector->model), NULL));
   gtk_drop_down_set_factory (selector->dropdown, factory);
   gtk_box_append (GTK_BOX (selector), GTK_WIDGET (selector->dropdown));
   g_signal_connect (selector->dropdown, "notify::selected", G_CALLBACK (on_dropdown_notify_selected), selector);

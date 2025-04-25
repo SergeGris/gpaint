@@ -61,7 +61,7 @@ apply_backup (AppState *state, cairo_surface_t *backup)
 {
   if (cairo_image_surface_get_width (backup) != cairo_image_surface_get_width (state->main_surface) || cairo_image_surface_get_height (backup) != cairo_image_surface_get_height (state->main_surface))
     {
-      state->main_surface = cairo_image_surface_create (state->format, cairo_image_surface_get_width (backup), cairo_image_surface_get_height (backup));
+      state->main_surface = cairo_image_surface_create (cairo_image_surface_get_format (backup), cairo_image_surface_get_width (backup), cairo_image_surface_get_height (backup));
       gtk_drawing_area_set_content_width (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_width (state->main_surface) * state->zoom_level));
       gtk_drawing_area_set_content_height (GTK_DRAWING_AREA (state->drawing_area), (int) (cairo_image_surface_get_height (state->main_surface) * state->zoom_level));
       gtk_widget_queue_draw (state->drawing_area);

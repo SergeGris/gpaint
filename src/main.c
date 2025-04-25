@@ -6,7 +6,7 @@
 #include <glib/gi18n.h>
 
 #if HAVE_ADWAITA
-#include <adwaita.h>
+# include <adwaita.h>
 #endif
 
 #include <gtk/gtk.h>
@@ -151,8 +151,8 @@ motion_handler (GtkEventControllerMotion *ctrl, double x, double y, gpointer use
       state->selected_rect.y = state->selection_start_y + dy;
 
       // Constrain to canvas boundaries
-      state->selected_rect.x = CLAMP (state->selected_rect.x, -state->selected_rect.width, cairo_image_surface_get_width (state->main_surface));
-      state->selected_rect.y = CLAMP (state->selected_rect.y, -state->selected_rect.height, cairo_image_surface_get_height (state->main_surface));
+      state->selected_rect.x = clamp_int (state->selected_rect.x, -state->selected_rect.width, cairo_image_surface_get_width (state->main_surface));
+      state->selected_rect.y = clamp_int (state->selected_rect.y, -state->selected_rect.height, cairo_image_surface_get_height (state->main_surface));
 
       gtk_widget_queue_draw (state->drawing_area);
     }
@@ -226,6 +226,7 @@ on_redo (GSimpleAction *action, GVariant *parameter, gpointer user_data)
   gtk_widget_queue_draw (state->drawing_area);
 }
 static void on_resize (GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void on_new_create (GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 static void
 on_toggle_show_grid (GSimpleAction *action, GVariant *parameter, gpointer user_data)
@@ -647,7 +648,9 @@ on_zoom_reset (GSimpleAction *action, GVariant *parameter, gpointer user_data)
 
 ////
 static const GActionEntry file_actions[] = {
-  { "new",  on_new_file,  NULL, NULL, NULL },
+  { "new",    on_new_create,    NULL, NULL, NULL },
+
+  //{ "new",  on_new_file,  NULL, NULL, NULL },
   { "open", on_open_file, NULL, NULL, NULL },
   { "save", on_save_file, NULL, NULL, NULL },
   { "quit", on_quit,      NULL, NULL, NULL },
@@ -741,7 +744,7 @@ update_cursor_position (AppState *state, double x, double y)
     {
       gtk_widget_set_visible (state->current_position, TRUE);
       gchar position[256];
-      g_snprintf (position, sizeof (position), "[%d, %d]", MIN (px, width - 1), MIN (py, height - 1));
+      g_snprintf (position, sizeof (position), "[%d, %d]", min_int (px, width - 1), min_int (py, height - 1));
       gtk_label_set_text (GTK_LABEL (state->current_position), position);
     }
 
@@ -780,15 +783,16 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
   my_get_visible_rect (state, &s_x, &s_y, &s_width, &s_height);
 
   // TODO
-  const int d = 2 * MAX (8.0, pixel_size); // TODO: Preserve some space for if drawing
-                                           // area scaled and not properly aligned.
+  const int d = 2 * max_double (8.0, pixel_size); // TODO: Preserve some space for if drawing
+                                                  // area scaled and not properly aligned.
   const double r = pixel_size;
-  const GdkRectangle v = {
-    .x = (int) (s_x / r) - d,
-    .y = (int) (s_y / r) - d,
-    .width = (int) (s_width / r) + 2 * d,
-    .height = (int) (s_height / r) + 2 * d,
-  };
+  const GdkRectangle v =
+    {
+      .x = (int) (s_x / r) - d,
+      .y = (int) (s_y / r) - d,
+      .width = (int) (s_width / r) + 2 * d,
+      .height = (int) (s_height / r) + 2 * d,
+    };
 
   // draw_transparent_square (cr, v.x, v.y, v.width, v.height, 1.0);
 
@@ -939,7 +943,9 @@ draw_callback (GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointe
       cairo_set_line_width (cr, 2.0 / pixel_size);
 
       // Define the rectangle path
-      cairo_rectangle (cr, state->selected_rect.x, state->selected_rect.y, state->selected_rect.width, state->selected_rect.height);
+      cairo_rectangle (cr,
+                       state->selected_rect.x, state->selected_rect.y,
+                       state->selected_rect.width, state->selected_rect.height);
 
       // First stroke: black dashes
       double dashes1[] = { 4.0 / pixel_size, 4.0 / pixel_size };
@@ -1719,6 +1725,8 @@ create_file_toolbar (AppState *state)
   g_autoptr (GMenu) file = g_menu_new ();
 
   g_menu_append (file, "New", "app.new");
+
+  // TODO g_menu_append (file, "New", "app.new");
   g_menu_append (file, "Open", "app.open");
   g_menu_append (file, "Save", "app.save");
   g_menu_append (file, "Quit", "app.quit");
@@ -1868,7 +1876,7 @@ resize_drawable_area_x (gpointer user_data, int dx, int dy, int dirx, int diry)
 
   cairo_surface_t *old_surface = state->main_surface;
 
-  state->main_surface = cairo_image_surface_create (state->format, new_width, new_height);
+  state->main_surface = cairo_image_surface_create (cairo_image_surface_get_format (old_surface), new_width, new_height);
   clear_canvas (state->main_surface);
 
   cairo_t *cr = cairo_create (state->main_surface);
@@ -1892,7 +1900,7 @@ resize_drawable_area (AppState *state, int new_width, int new_height)
 
   cairo_surface_t *old_surface = state->main_surface;
 
-  state->main_surface = cairo_image_surface_create (state->format, new_width, new_height);
+  state->main_surface = cairo_image_surface_create (cairo_image_surface_get_format (old_surface), new_width, new_height);
   clear_canvas (state->main_surface);
 
   cairo_t *cr = cairo_create (state->main_surface);
@@ -2094,6 +2102,304 @@ on_entry_changed (GtkEditable *editable, gpointer user_data)
     }
 }
 
+/////
+static void on_new_entry_changed (GtkEditable *editable, gpointer user_data);
+
+typedef struct
+{
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  AdwDialog *dialog;
+#else
+  GtkWindow *dialog;
+#endif
+  AppState *state;
+  GtkWidget *width_entry;
+  GtkWidget *height_entry;
+} NewData;
+
+static void
+on_new_ok_clicked (GtkButton *btn, gpointer user_data)
+{
+  NewData *rd = (NewData *) user_data;
+  const gchar *width_text = gtk_entry_buffer_get_text (gtk_entry_get_buffer (GTK_ENTRY (rd->width_entry)));
+  const gchar *height_text = gtk_entry_buffer_get_text (gtk_entry_get_buffer (GTK_ENTRY (rd->height_entry)));
+
+  int new_width = atoi (width_text);
+  int new_height = atoi (height_text);
+  //newnew_drawable_area (rd->state, new_width, new_height);
+
+  //TODO rd->state->main_surface = cairo_image_surface_create (cairo_image_surface_get_format (new_format), new_width, new_height);
+
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  adw_dialog_close (rd->dialog);
+#else
+  gtk_window_destroy (GTK_WINDOW (rd->dialog));
+#endif
+  g_free (rd);
+}
+
+static void
+on_new_cancel_clicked (GtkButton *btn, gpointer user_data)
+{
+  NewData *rd = (NewData *) user_data;
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  adw_dialog_close (rd->dialog);
+#else
+  gtk_window_destroy (GTK_WINDOW (rd->dialog));
+#endif
+  g_free (rd);
+}
+
+static void
+on_new_create (GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+  AppState *state = (AppState *) user_data;
+
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  AdwDialog *dialog = adw_dialog_new ();
+
+  adw_dialog_set_title (dialog, "New drawable area");
+  adw_dialog_set_can_close (dialog, TRUE);
+  adw_dialog_set_presentation_mode (dialog, ADW_DIALOG_FLOATING);
+  adw_dialog_set_follows_content_size (dialog, TRUE);
+#else
+  GtkWidget *window = gtk_window_new ();
+  gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW (state->window));
+  gtk_window_set_modal (GTK_WINDOW (window), TRUE);
+  gtk_window_set_title (GTK_WINDOW (window), "New drawable area");
+  gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
+  gtk_window_set_transient_for (GTK_WINDOW (window), GTK_WINDOW (state->window));
+#endif
+
+  NewData *rd = g_new (NewData, 1);
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  rd->dialog = dialog;
+#else
+  rd->dialog = GTK_WINDOW (window);
+#endif
+  rd->state = state;
+
+  // 2) Grab its content area and pack a vertical box
+  GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+  gtk_widget_set_margin_top(vbox,    12);
+  gtk_widget_set_margin_bottom(vbox, 12);
+  gtk_widget_set_margin_start(vbox,  12);
+  gtk_widget_set_margin_end(vbox,    12);
+
+  // --- Size Section ---
+  GtkWidget *lbl_section = gtk_label_new("— Size:");
+  gtk_label_set_xalign(GTK_LABEL(lbl_section), 0.0);
+  gtk_box_append(GTK_BOX(vbox), lbl_section);
+
+  // Width row
+  {
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append(GTK_BOX(vbox), hbox);
+
+    GtkWidget *lbl = gtk_label_new("Width:");
+    gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+    gtk_box_append(GTK_BOX(hbox), lbl);
+
+    GtkWidget *entry = my_entry_new_with_initial("32");
+    //gtk_entry_set_width_chars(GTK_ENTRY(entry), 4);
+    //gtk_entry_set_text(GTK_ENTRY(entry), "32");
+    gtk_box_append(GTK_BOX(hbox), entry);
+
+    GtkWidget *suffix = gtk_label_new("px");
+    gtk_box_append(GTK_BOX(hbox), suffix);
+
+    rd->width_entry = entry;
+  }
+
+  // Height row
+  {
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_append(GTK_BOX(vbox), hbox);
+
+    GtkWidget *lbl = gtk_label_new("Height:");
+    gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+    gtk_box_append(GTK_BOX(hbox), lbl);
+
+    GtkWidget *entry = my_entry_new_with_initial("32");
+    //gtk_entry_set_width_chars(GTK_ENTRY(entry), 4);
+    //gtk_entry_set_text(GTK_ENTRY(entry), "32");
+    gtk_box_append(GTK_BOX(hbox), entry);
+
+    GtkWidget *suffix = gtk_label_new("px");
+    gtk_box_append(GTK_BOX(hbox), suffix);
+
+    rd->height_entry = entry;
+  }
+
+  struct
+  {
+    const char *label;
+    gpointer value;
+  } color_mode[] =
+    {
+      { .label = "RGBA" },
+      { .label = "Grayscale" },
+      { .label = "Indexed" },
+    },
+    background[] =
+    {
+      { .label = "Transparent" },
+      { .label = "White" },
+      { .label = "Black" },
+    };
+
+  // --- Color Mode Section ---
+  lbl_section = gtk_label_new("— Color Mode:");
+  gtk_label_set_xalign(GTK_LABEL(lbl_section), 0.0);
+  gtk_box_append(GTK_BOX(vbox), lbl_section);
+
+  {
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_box_append(GTK_BOX(vbox), hbox);
+
+    GtkWidget *prev = NULL;
+
+    for (size_t i = 0; i < G_N_ELEMENTS (color_mode); i++)
+      {
+        GtkWidget *btn = gtk_toggle_button_new_with_label(color_mode[i].label);
+
+        if (prev)
+          gtk_toggle_button_set_group (GTK_TOGGLE_BUTTON (btn), GTK_TOGGLE_BUTTON (prev));
+        else
+          gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (btn), TRUE);
+
+        prev = btn;
+        gtk_box_append(GTK_BOX(hbox), btn);
+      }
+  }
+
+  // --- Background Section ---
+  lbl_section = gtk_label_new("— Background:");
+  gtk_label_set_xalign(GTK_LABEL(lbl_section), 0.0);
+  gtk_box_append(GTK_BOX(vbox), lbl_section);
+
+  {
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_box_append(GTK_BOX(vbox), hbox);
+
+    GtkWidget *prev = NULL;
+
+    for (size_t i = 0; i < G_N_ELEMENTS (background); i++)
+      {
+        GtkWidget *btn = gtk_toggle_button_new_with_label(background[i].label);
+
+        if (prev)
+          gtk_toggle_button_set_group (GTK_TOGGLE_BUTTON (btn), GTK_TOGGLE_BUTTON (prev));
+        else
+          gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (btn), TRUE);
+
+        prev = btn;
+        gtk_box_append(GTK_BOX(hbox), btn);
+      }
+  }
+
+  {
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_box_append(GTK_BOX(vbox), hbox);
+
+    GtkWidget *ok_button = gtk_button_new_with_label ("Ok");
+    gtk_box_append(GTK_BOX(hbox), ok_button);
+    g_signal_connect (ok_button, "clicked", G_CALLBACK (on_new_ok_clicked), rd);
+
+    GtkWidget *cancel_button = gtk_button_new_with_label ("Cancel");
+    gtk_box_append(GTK_BOX(hbox), cancel_button);
+    g_signal_connect (cancel_button, "clicked", G_CALLBACK (on_new_cancel_clicked), rd);
+  }
+
+  /*   GtkWidget *grid = gtk_grid_new (); */
+  /*   gtk_widget_set_margin_top (grid, 12); */
+  /*   gtk_widget_set_margin_bottom (grid, 12); */
+  /*   gtk_widget_set_margin_start (grid, 12); */
+  /*   gtk_widget_set_margin_end (grid, 12); */
+
+  /*   gtk_grid_set_row_spacing (GTK_GRID (grid), 8); */
+  /*   gtk_grid_set_column_spacing (GTK_GRID (grid), 8); */
+
+  /*   GtkWidget *keep_ratio_check = gtk_check_button_new_with_label ("Keep ratio"); */
+
+  /*   struct Dimension */
+  /*   { */
+  /*     int current; */
+  /*     const char *label; */
+  /*     GtkWidget *entry; */
+  /*   } h = { */
+  /*     .current = cairo_image_surface_get_height (state->main_surface), */
+  /*     .label = "Height", */
+  /*     .entry = NULL, */
+  /*   }, */
+  /*     w = { */
+  /*       .current = cairo_image_surface_get_width (state->main_surface), */
+  /*       .label = "Width", */
+  /*       .entry = NULL, */
+  /*     }, */
+  /*     *d[] = { &w, &h }; */
+
+  /*   for (int i = 0; i < (int) G_N_ELEMENTS (d); i++) */
+  /*     { */
+  /*       char buffer[64]; */
+  /*       int n; */
+  /*       struct Dimension *t = d[i]; */
+  /*       t->entry = my_entry_new (); // TODO. It shall handle set buffer */
+
+  /*       n = snprintf (buffer, sizeof (buffer), "%d", t->current); */
+  /*       gtk_entry_set_buffer (GTK_ENTRY (t->entry), gtk_entry_buffer_new (buffer, n)); */
+
+  /*       g_object_set_data (G_OBJECT (t->entry), "value", GINT_TO_POINTER (0)); */
+
+  /*       gtk_grid_attach (GTK_GRID (grid), gtk_label_new (t->label), 0, i, 1, 1); */
+  /*       gtk_grid_attach (GTK_GRID (grid), t->entry, 1, i, 1, 1); */
+  /*     } */
+
+  /*   GtkWidget *rgba = gtk_button_new (); */
+  /*   GtkWidget *grayscale = gtk_button_new (); */
+  /*   GtkWidget *indexed = gtk_button_new (); */
+  /*   gtk_grid_attach (GTK_GRID (grid), rgba, 0, 2, 1, 1); */
+  /*   gtk_grid_attach (GTK_GRID (grid), grayscale, 1, 2, 1, 1); */
+  /*   gtk_grid_attach (GTK_GRID (grid), indexed, 2, 2, 1, 1); */
+
+
+  /*   GtkWidget *transparent = gtk_button_new (); */
+  /*   GtkWidget *white = gtk_button_new (); */
+  /*   GtkWidget *black = gtk_button_new (); */
+  /*   gtk_grid_attach (GTK_GRID (grid), transparent, 0, 3, 1, 1); */
+  /*   gtk_grid_attach (GTK_GRID (grid), white, 1, 3, 1, 1); */
+  /*   gtk_grid_attach (GTK_GRID (grid), black, 2, 3, 1, 1); */
+
+
+  /*   NewnewData *rd = g_new (NewnewData, 1); */
+  /* #if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0) */
+  /*   rd->dialog = dialog; */
+  /* #else */
+  /*   rd->dialog = GTK_WINDOW (window); */
+  /* #endif */
+  /*   rd->state = state; */
+  /*   rd->width_entry = w.entry; */
+  /*   rd->height_entry = h.entry; */
+
+  /*   GtkWidget *ok_button = gtk_button_new_with_label ("Ok"); */
+  /*   g_signal_connect (ok_button, "clicked", G_CALLBACK (on_ok_clicked), rd); */
+
+  /*   GtkWidget *cancel_button = gtk_button_new_with_label ("Cancel"); */
+  /*   g_signal_connect (cancel_button, "clicked", G_CALLBACK (on_cancel_clicked), rd); */
+
+  /*   gtk_grid_attach (GTK_GRID (grid), ok_button, 0, 4, 1, 1); */
+  /*   gtk_grid_attach (GTK_GRID (grid), cancel_button, 1, 4, 1, 1); */
+
+#if HAVE_ADWAITA && ADW_CHECK_VERSION(1, 5, 0)
+  adw_dialog_set_child (dialog, vbox);
+  adw_dialog_present (dialog, state->window);
+#else
+  gtk_window_set_child (GTK_WINDOW (window), vbox);
+  gtk_window_present (GTK_WINDOW (window));
+#endif
+}
+/////
+
 static GtkWidget *
 create_drawing_area (AppState *state)
 {
@@ -2106,10 +2412,11 @@ create_drawing_area (AppState *state)
   {
     void (*callback) (GtkGestureDrag *gesture, double x, double y, gpointer user_data);
     guint button;
-  } buttons[2] = {
-    { .callback = on_click_primary_pressed,   .button = GDK_BUTTON_PRIMARY   },
-    { .callback = on_click_secondary_pressed, .button = GDK_BUTTON_SECONDARY },
-  };
+  } buttons[2] =
+    {
+      { .callback = on_click_primary_pressed,   .button = GDK_BUTTON_PRIMARY   },
+      { .callback = on_click_secondary_pressed, .button = GDK_BUTTON_SECONDARY },
+    };
 
   for (size_t i = 0; i < G_N_ELEMENTS (buttons); i++)
     {
@@ -2125,47 +2432,12 @@ create_drawing_area (AppState *state)
   g_signal_connect (motion, "motion", G_CALLBACK (motion_handler), state);
   g_signal_connect (motion, "leave", G_CALLBACK (on_leave), state);
   gtk_widget_add_controller (drawing_area, motion);
-
   return drawing_area;
 }
 
-/* cairo_surface_t * */
-/* get_surface (gpointer user_data) */
-/* { */
-/*   AppState *st = (AppState *) user_data; */
-/*   return st->main_surface; */
-/* } */
-
-// TODO
-/* static void */
-/* on_surface_selected (gpointer TODO, cairo_surface_t *surface, gpointer
- * user_data) */
-/* { */
-/*   // TODO */
-/*   AppState *state = (AppState *) user_data; */
-/*   state->main_surface = surface; */
-/*   gtk_widget_queue_draw (state->drawing_area); */
-/* } */
-
 static void
-activate (GtkApplication *app, AppState *state)
+create_gpaint_drawing_area (AppState *state)
 {
-  state->application = app;
-#if HAVE_ADWAITA
-  GtkWidget *window = adw_window_new ();
-  gtk_window_set_application (GTK_WINDOW (window), app); // TODO
-#else
-  GtkWidget *window = gtk_application_window_new (app); // Must be freed
-#endif
-  state->window = window;
-  gtk_window_set_title (GTK_WINDOW (window), "Paint");
-  gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-
-  GtkWidget *header = gtk_header_bar_new ();
-  // TODO gtk_window_set_titlebar (GTK_WINDOW (window), header);
-
-  gtk_header_bar_pack_end (GTK_HEADER_BAR (header), create_zoom_box (state));
-
   state->drawing_area = create_drawing_area (state);
   GtkWidget *bordered = gpaint_border_widget_new ();
   gpaint_border_widget_set_child (GPAINT_BORDER_WIDGET (bordered), state->drawing_area);
@@ -2220,10 +2492,51 @@ activate (GtkApplication *app, AppState *state)
   state->scrolled = scrolled;
   state->hadj = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (scrolled));
   state->vadj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (scrolled));
+}
+
+/* cairo_surface_t * */
+/* get_surface (gpointer user_data) */
+/* { */
+/*   AppState *st = (AppState *) user_data; */
+/*   return st->main_surface; */
+/* } */
+
+// TODO
+/* static void */
+/* on_surface_selected (gpointer TODO, cairo_surface_t *surface, gpointer
+ * user_data) */
+/* { */
+/*   // TODO */
+/*   AppState *state = (AppState *) user_data; */
+/*   state->main_surface = surface; */
+/*   gtk_widget_queue_draw (state->drawing_area); */
+/* } */
+
+static void
+activate (GtkApplication *app, AppState *state)
+{
+  state->application = app;
+#if HAVE_ADWAITA
+  GtkWidget *window = adw_window_new ();
+  gtk_window_set_application (GTK_WINDOW (window), app); // TODO
+#else
+  GtkWidget *window = gtk_application_window_new (app); // Must be freed
+#endif
+  state->window = window;
+  gtk_window_set_title (GTK_WINDOW (window), "Paint");
+  gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+
+  GtkWidget *header = gtk_header_bar_new ();
+  // TODO gtk_window_set_titlebar (GTK_WINDOW (window), header);
+
+  gtk_header_bar_pack_end (GTK_HEADER_BAR (header), create_zoom_box (state));
+
+  // TODO
+  create_gpaint_drawing_area (state);
 
   GtkEventController *scroll_controller = gtk_event_controller_scroll_new (GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);
   g_signal_connect (scroll_controller, "scroll", G_CALLBACK (on_scroll), state);
-  gtk_widget_add_controller (scrolled, scroll_controller);
+  gtk_widget_add_controller (state->scrolled, scroll_controller);
 
   state->color_swap_button = gpaint_color_swap_button_new (get_primary_color, get_secondary_color, swap_colors, state);
   state->image_info = gtk_label_new ("");
@@ -2272,7 +2585,7 @@ activate (GtkApplication *app, AppState *state)
   gtk_frame_set_child (GTK_FRAME (lrs), scr);
 
   gtk_box_append (GTK_BOX (content_hbox), vframe);
-  gtk_box_append (GTK_BOX (content_hbox), scrolled);
+  gtk_box_append (GTK_BOX (content_hbox), state->scrolled);
   /* gtk_box_append (GTK_BOX (content_hbox), lrs); // TODO */
 
   {
@@ -2309,11 +2622,12 @@ activate (GtkApplication *app, AppState *state)
   {
     const GActionEntry *actions;
     gint count;
-  } entries[] = {
-    { .actions = file_actions, G_N_ELEMENTS (file_actions) },
-    { .actions = edit_actions, G_N_ELEMENTS (edit_actions) },
-    { .actions = view_actions, G_N_ELEMENTS (view_actions) },
-  };
+  } entries[] =
+    {
+      { .actions = file_actions, G_N_ELEMENTS (file_actions) },
+      { .actions = edit_actions, G_N_ELEMENTS (edit_actions) },
+      { .actions = view_actions, G_N_ELEMENTS (view_actions) },
+    };
 
   for (size_t i = 0; i < G_N_ELEMENTS (entries); i++)
     g_action_map_add_action_entries (G_ACTION_MAP (app), entries[i].actions, entries[i].count, state);
@@ -2333,6 +2647,15 @@ activate (GtkApplication *app, AppState *state)
 
   g_simple_action_set_enabled (state->backup_manager.undo_action, !g_queue_is_empty (state->backup_manager.undo));
   g_simple_action_set_enabled (state->backup_manager.redo_action, !g_queue_is_empty (state->backup_manager.redo));
+
+#if HAVE_ADWAITA
+  // TODO
+  adw_style_manager_set_color_scheme(adw_style_manager_get_default(), ADW_COLOR_SCHEME_FORCE_DARK);
+#endif
+
+  // TODO
+    /* GAction *action = g_action_map_lookup_action(G_ACTION_MAP(state->application), "new"); */
+    /* g_action_activate(action, NULL); */
 }
 
 int
@@ -2375,13 +2698,13 @@ main (int argc, char **argv)
   state.is_drawing = FALSE;
   state.preview_surface = NULL;
   init_backup_manager (&state.backup_manager);
-  state.format = cairo_image_surface_get_format (state.main_surface);
   state.selected_surface = NULL;
   state.selected_rect = (GdkRectangle) { 0, 0, 0, 0 };
   state.has_selection = FALSE;
   state.cursor_x = state.cursor_y = 0.0;
   state.is_dragging_selection = state.has_selection = FALSE;
   state.antialiasing = CAIRO_ANTIALIAS_NONE;
+  state.inertial = TRUE;
   /* TODO state.last_drag_time = 0; */
 
   // clang-format off

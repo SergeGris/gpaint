@@ -9,6 +9,89 @@
 #define GPAINT_TRANSPARENT_FIRST_COLOR (84.0 / 255.0)
 #define GPAINT_TRANSPARENT_SECOND_COLOR (168.0 / 255.0)
 
+static inline int
+gpaint_cairo_get_color_depth (cairo_surface_t *surface)
+{
+  // TODO undocumanted?
+  const cairo_format_t format = cairo_image_surface_get_format (surface);
+  int color_depth = 0;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+
+  // Handle only supported formats... TODO
+  switch (format)
+    {
+    case CAIRO_FORMAT_ARGB32:
+      color_depth = 32; // 8 bits for each of 4 channels (Alpha, Red, Green, Blue)
+      break;
+    case CAIRO_FORMAT_RGB24:
+      color_depth = 24; // 8 bits for each of 3 channels (Red, Green, Blue)
+      break;
+    case CAIRO_FORMAT_A8:
+      color_depth = 8; // 8 bits for Alpha only
+      break;
+      // TODO
+    /* case CAIRO_FORMAT_RGB16_565: */
+    /*   color_depth = 16; // 5 bits for Red, 6 bits for Green, 5 bits for Blue
+     */
+    /*   break; */
+    /* case CAIRO_FORMAT_RGB30: */
+    /*   color_depth = 30; // 10 bits for each of 3 channels (Red, Green, Blue)
+     */
+    /*   break; */
+    case CAIRO_FORMAT_A1:
+      color_depth = 1;
+      break;
+    case CAIRO_FORMAT_INVALID:
+    default:
+      color_depth = 0;
+      break;
+    }
+
+#pragma GCC diagnostic pop
+
+  return color_depth;
+}
+
+static inline int
+gpaint_cairo_get_bytes_per_pixel (cairo_surface_t *surface)
+{
+  // TODO undocumanted?
+  const cairo_format_t format = cairo_image_surface_get_format (surface);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+
+  // Handle only supported formats... TODO
+  switch (format)
+    {
+    case CAIRO_FORMAT_ARGB32:
+      return 4; // 8 bits for each of 4 channels (Alpha, Red, Green, Blue)
+    case CAIRO_FORMAT_RGB24:
+      return 4; // 8 bits for each of 3 channels (Red, Green, Blue)
+    case CAIRO_FORMAT_A8:
+      return 1; // 8 bits for Alpha only
+      // TODO
+      /* case CAIRO_FORMAT_RGB16_565: */
+      /*   color_depth = 16; // 5 bits for Red, 6 bits for Green, 5 bits for
+       * Blue */
+      /*   break; */
+      /* case CAIRO_FORMAT_RGB30: */
+      /*   color_depth = 30; // 10 bits for each of 3 channels (Red, Green,
+       * Blue) */
+      /*   break; */
+      /* case CAIRO_FORMAT_A1: */
+      /*   color_depth = 1; */
+      /*   break; */
+    case CAIRO_FORMAT_INVALID:
+    default:
+      abort ();
+    }
+
+#pragma GCC diagnostic pop
+}
+
 static inline cairo_t *
 create_cairo (cairo_surface_t *surface, cairo_operator_t op, cairo_antialias_t antialiasing)
 {
@@ -115,15 +198,15 @@ draw_colored_square (cairo_t *cr, const GdkRGBA *color, gdouble px, gdouble py, 
 }
 
 static inline void
-set_pix_clr (guint8 *data, gint x, gint y, gint stride, guint32 color)
+set_pix_clr (guint8 *data, gint x, gint y, gint stride, gint bpp, guint32 color)
 {
-  *(uint32_t *) (data + y * stride + x * 4) = color;
+  *(uint32_t *) (data + y * stride + x * bpp) = color;
 }
 
 static inline guint32
-get_pix_clr (guint8 *data, gint x, gint y, gint stride)
+get_pix_clr (guint8 *data, gint x, gint y, gint stride, gint bpp)
 {
-  return *(uint32_t *) (data + y * stride + x * 4);
+  return *(uint32_t *) (data + y * stride + x * bpp);
 }
 
 static inline guint32
@@ -148,10 +231,10 @@ gdk_rgba_to_clr (const GdkRGBA *rgba)
 /* } */
 
 static inline GdkRGBA
-get_pixel_color (const guchar *data, gint x, gint y, gint stride)
+get_pixel_color (const guchar *data, gint x, gint y, gint stride, gint bpp)
 {
-  /* CAIRO_FORMAT_ARGB32 stores pixels in BGRA order on little-endian systems */
-  int offset = y * stride + x * 4;
+  // TODO /* CAIRO_FORMAT_ARGB32 stores pixels in BGRA order on little-endian systems */
+  int offset = y * stride + x * bpp;
   GdkRGBA color = {
     .alpha = (double) data[offset + 3] / 255.0,
     .red = (double) data[offset + 2] / 255.0,
@@ -196,87 +279,4 @@ copy_surface (cairo_surface_t *dst, cairo_surface_t *src)
   cairo_set_source_surface (cr, src, 0, 0);
   cairo_paint (cr);
   cairo_destroy (cr);
-}
-
-static inline int
-gpaint_cairo_get_color_depth (cairo_surface_t *surface)
-{
-  // TODO undocumanted?
-  const cairo_format_t format = cairo_image_surface_get_format (surface);
-  int color_depth = 0;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch-enum"
-
-  // Handle only supported formats... TODO
-  switch (format)
-    {
-    case CAIRO_FORMAT_ARGB32:
-      color_depth = 32; // 8 bits for each of 4 channels (Alpha, Red, Green, Blue)
-      break;
-    case CAIRO_FORMAT_RGB24:
-      color_depth = 24; // 8 bits for each of 3 channels (Red, Green, Blue)
-      break;
-    case CAIRO_FORMAT_A8:
-      color_depth = 8; // 8 bits for Alpha only
-      break;
-      // TODO
-    /* case CAIRO_FORMAT_RGB16_565: */
-    /*   color_depth = 16; // 5 bits for Red, 6 bits for Green, 5 bits for Blue
-     */
-    /*   break; */
-    /* case CAIRO_FORMAT_RGB30: */
-    /*   color_depth = 30; // 10 bits for each of 3 channels (Red, Green, Blue)
-     */
-    /*   break; */
-    case CAIRO_FORMAT_A1:
-      color_depth = 1;
-      break;
-    case CAIRO_FORMAT_INVALID:
-    default:
-      color_depth = 0;
-      break;
-    }
-
-#pragma GCC diagnostic pop
-
-  return color_depth;
-}
-
-static inline int
-gpaint_cairo_get_bytes_per_pixel (cairo_surface_t *surface)
-{
-  // TODO undocumanted?
-  const cairo_format_t format = cairo_image_surface_get_format (surface);
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch-enum"
-
-  // Handle only supported formats... TODO
-  switch (format)
-    {
-    case CAIRO_FORMAT_ARGB32:
-      return 4; // 8 bits for each of 4 channels (Alpha, Red, Green, Blue)
-    case CAIRO_FORMAT_RGB24:
-      return 4; // 8 bits for each of 3 channels (Red, Green, Blue)
-    case CAIRO_FORMAT_A8:
-      return 1; // 8 bits for Alpha only
-      // TODO
-      /* case CAIRO_FORMAT_RGB16_565: */
-      /*   color_depth = 16; // 5 bits for Red, 6 bits for Green, 5 bits for
-       * Blue */
-      /*   break; */
-      /* case CAIRO_FORMAT_RGB30: */
-      /*   color_depth = 30; // 10 bits for each of 3 channels (Red, Green,
-       * Blue) */
-      /*   break; */
-      /* case CAIRO_FORMAT_A1: */
-      /*   color_depth = 1; */
-      /*   break; */
-    case CAIRO_FORMAT_INVALID:
-    default:
-      abort ();
-    }
-
-#pragma GCC diagnostic pop
 }

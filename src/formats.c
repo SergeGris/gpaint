@@ -339,7 +339,7 @@ load_image_to_cairo_surface (const char *filename)
   AVPacket packet;
   AVFrame *frame = av_frame_alloc ();
   struct SwsContext *sws_ctx = NULL;
-  int got_frame = 0;
+  gboolean got_frame = FALSE;
   cairo_surface_t *surface = NULL;
 
   // Read frames
@@ -349,7 +349,7 @@ load_image_to_cairo_surface (const char *filename)
         if (avcodec_send_packet (cctx, &packet) == 0)
           if (avcodec_receive_frame (cctx, frame) == 0)
             {
-              got_frame = 1;
+              got_frame = TRUE;
               av_packet_unref (&packet);
               break;
             }
@@ -387,7 +387,6 @@ cleanup:
   av_frame_free (&frame);
   avcodec_free_context (&cctx);
   avformat_close_input (&fmt_ctx);
-
   return surface;
 }
 

@@ -3,6 +3,8 @@
 
 #include <gtk/gtk.h>
 
+#include "utils.h"
+
 typedef struct Tool Tool;
 
 struct _BackupManager
@@ -71,8 +73,9 @@ typedef struct
   double velocity_y;
   gint64 last_drag_time;
   guint inertia_timeout_id;
+  gboolean inertial;
 
-  cairo_format_t format;
+  /* cairo_format_t format; */
   cairo_surface_t *main_surface;
   cairo_surface_t *preview_surface;
 

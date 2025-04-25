@@ -105,7 +105,7 @@ on_draw (GtkDrawingArea *area, cairo_t *cr, gint width, gint height, gpointer us
   cairo_set_source_rgb (cr, 1.0, 1.0, 1.0);
   cairo_rectangle (cr, 0, 0, square_size, square_size);
   cairo_fill (cr);
-  cairo_set_source_rgb (cr, 0.4, 0.4, 0.4);
+  cairo_set_source_rgb (cr, 0.4, 0.4, 0.4); // TODO change color?
   cairo_rectangle (cr, 0, 0, square_size, square_size);
   cairo_stroke (cr);
 }

@@ -6,16 +6,17 @@ static void draw_eraser_handler (AppState *state, gint x0, gint y0, gint x1, gin
 static void motion_eraser_handler (AppState *state, gint x, gint y);
 static void draw_eraser_cursor (AppState *state, cairo_t *cr);
 
-const Tool global_eraser_tool = {
-  .type = TOOL_ERASER,
-  .icon = &eraser_data,
-  .cursor_name = NULL,
-  .draw_handler = draw_eraser_handler,
-  .motion_handler = motion_eraser_handler,
-  .draw_cursor_handler = draw_eraser_cursor,
-  .override_main_surface = true,
-  .is_drawing = TRUE,
-};
+const Tool global_eraser_tool =
+  {
+    .type = TOOL_ERASER,
+    .icon = &eraser_data,
+    .cursor_name = NULL,
+    .draw_handler = draw_eraser_handler,
+    .motion_handler = motion_eraser_handler,
+    .draw_cursor_handler = draw_eraser_cursor,
+    .override_main_surface = true,
+    .is_drawing = TRUE,
+  };
 
 static void
 draw_eraser (cairo_surface_t *surface, const GdkRGBA *color, gint x, gint y, gdouble size, cairo_antialias_t antialiasing)
