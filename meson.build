@@ -25,6 +25,23 @@ config_h.set('HAVE_XCURSOR', x11_dep.found() ? 1 : 0)
 wayland_dep = dependency('wayland-cursor', required: false)
 config_h.set('HAVE_WAYLAND_CURSOR', wayland_dep.found() ? 1 : 0)
 
+ffmpeg_deps = [
+  dependency('libavutil', required: false),
+  dependency('libavcodec', required: false),
+  dependency('libavformat', required: false),
+  dependency('libswscale', required: false),
+]
+
+have_ffmpeg = 1
+foreach dep: ffmpeg_deps
+  if not dep.found()
+    have_ffmpeg = 0
+    break
+  endif
+endforeach
+
+config_h.set('HAVE_FFMPEG', have_ffmpeg)
+
 configure_file(output: 'config.h', configuration: config_h)
 add_project_arguments(['-I' + project_build_root, '-DHAVE_CONFIG_H=1'], language: 'c') # TODO
 
@@ -104,10 +121,9 @@ gpaint_deps = [
   cc.find_library('m')
 ]
 
-gpaint_deps += dependency('libavutil')
-gpaint_deps += dependency('libavcodec')
-gpaint_deps += dependency('libavformat')
-gpaint_deps += dependency('libswscale')
+if have_ffmpeg != 0
+  gpaint_deps += ffmpeg_deps
+endif
 
 if adwaita_dep.found()
   gpaint_deps += adwaita_dep

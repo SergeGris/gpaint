@@ -1,5 +1,9 @@
 #pragma once
 
+#if HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include <cairo.h>
 #include <glib.h>
 
@@ -57,15 +61,38 @@ static const struct
 //{ .extensions = { "mp4" },         .codec_id = AV_CODEC_ID_H264, .pix_fmt = AV_PIX_FMT_YUV420P   },
 // TODO mpeg4, hdr, hevc, apng, xbm, jpeg, av1, webp, xpm
 
+#if HAVE_FFMPEG
 extern gboolean save_surfaces_with_ffmpeg (const char *filename, GList *surfaces, enum AVCodecID codec_id, int fps, const char *options_string, GError **error);
 
 // int save_image_with_ffmpeg (const char *filename, cairo_surface_t *surface,
 // enum AVCodecID codec_id, int fps);
 extern cairo_surface_t *load_image_to_cairo_surface (const char *filename);
+#endif
+
+static inline int
+load_image (cairo_surface_t **surface, const char *path)
+{
+#if HAVE_FFMPEG
+  *surface = load_image_to_cairo_surface (path);
+  return TRUE;
+#else
+  *surface = cairo_image_surface_create_from_png (path);
+  cairo_status_t status = cairo_surface_status (*surface);
+
+  if (status != CAIRO_STATUS_SUCCESS)
+    {
+      /* Handle the error (e.g., show a message to the user) */
+      g_printerr ("Failed to load image: %s\n", cairo_status_to_string (status));
+      g_clear_pointer (surface, cairo_surface_destroy);
+    }
+  return TRUE;
+#endif
+}
 
 static inline int
 save_image (const char *path, cairo_surface_t *surface, int fps, GError **error)
 {
+#if HAVE_FFMPEG
   const gchar *ext = strrchr (path, '.');
 
   if (!ext)
@@ -87,6 +114,23 @@ save_image (const char *path, cairo_surface_t *surface, int fps, GError **error)
   abort ();
   // TODO
   return FALSE;
+#else
+  const gchar *ext = strrchr (path, '.');
+
+  if (!ext)
+    ext = "png";
+  else
+    {
+    ext++;
+    if (g_ascii_strcasecmp (ext, "png") != 0)
+      g_warning ("supported only png format");
+    }
+
+  cairo_status_t status = cairo_surface_write_to_png (surface, path);
+  if (status != CAIRO_STATUS_SUCCESS)
+    g_warning ("Failed to save PNG image: %s", cairo_status_to_string (status));
+  return TRUE;
+#endif
 }
 
 G_END_DECLS

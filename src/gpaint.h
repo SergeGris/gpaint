@@ -35,6 +35,13 @@ typedef struct
   GtkWidget *btn;
 } ToolEntry;
 
+typedef enum
+{
+  COLOR_MODE_RGBA, // The default, full colored surface
+  COLOR_MODE_RGB,
+  COLOR_MODE_ALPHA,
+} ColorMode;
+
 // TODO
 /* typedef struct */
 /* { */

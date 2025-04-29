@@ -1332,22 +1332,22 @@ on_save_response (GObject *source_object, GAsyncResult *res, gpointer user_data)
   g_autofree gchar *path = g_file_get_path (file);
   GError *error = NULL;
   // TODO
-  /* if (!save_image (path, state->main_surface, 1, &error)) */
-  /*   g_warning("Failed to save image %s", error->message); */
+  if (!save_image (path, state->main_surface, 1, &error))
+    g_warning("Failed to save image %s", error->message);
 
-  GList surfaces = {
-    .data = state->main_surface,
-    .next = NULL,
-    .prev = NULL,
-  };
+  /* GList surfaces = { */
+  /*   .data = state->main_surface, */
+  /*   .next = NULL, */
+  /*   .prev = NULL, */
+  /* }; */
 
-  for (size_t i = 0; i < countof (gpaint_formats); i++)
-    {
-      error = NULL;
-      puts (gpaint_formats[i].extensions[0]);
-      if (!save_surfaces_with_ffmpeg (g_strdup_printf ("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, gpaint_formats[i].default_options, &error))
-        g_warning ("Failed to save image %s", error->message);
-    }
+  /* for (size_t i = 0; i < countof (gpaint_formats); i++) */
+  /*   { */
+  /*     error = NULL; */
+  /*     puts (gpaint_formats[i].extensions[0]); */
+  /*     if (!save_surfaces_with_ffmpeg (g_strdup_printf ("%s.%s", path, gpaint_formats[i].extensions[0]), &surfaces, gpaint_formats[i].codec_id, 1, gpaint_formats[i].default_options, &error)) */
+  /*       g_warning ("Failed to save image %s", error->message); */
+  /*   } */
 
   // TODO gtk_window_destroy (GTK_WINDOW (dialog));
 }
@@ -1394,7 +1394,8 @@ on_open_response (GObject *source_object, GAsyncResult *res, gpointer user_data)
 
   g_autofree gchar *path = g_file_get_path (file);
 
-  cairo_surface_t *new_surface = load_image_to_cairo_surface (path);
+  cairo_surface_t *new_surface;
+  load_image (&new_surface, path);
   cairo_status_t status = cairo_surface_status (new_surface);
 
   if (status != CAIRO_STATUS_SUCCESS)
@@ -2208,27 +2209,35 @@ static void on_new_create (GSimpleAction *action, GVariant *parameter, gpointer 
   gtk_widget_set_halign(size_label, GTK_ALIGN_START);
   gtk_box_append(GTK_BOX(vbox), size_label);
 
-  char width_buffer[64], height_buffer[64];
-  g_snprintf (width_buffer, sizeof (width_buffer), "%d",
-              cairo_image_surface_get_width (state->main_surface));
-  g_snprintf (width_buffer, sizeof (width_buffer), "%d",
-              cairo_image_surface_get_height (state->main_surface));
+  struct
+  {
+    GtkWidget *entry;
+    const char *label;
+    int value;
+  } w =
+    {
+      .label = "Width:",
+      .value = cairo_image_surface_get_width (state->main_surface)
+    }, h =
+    {
+      .label = "Height:",
+      .value = cairo_image_surface_get_height (state->main_surface)
+    },
+    *v[] = { &w, &h };
 
-  // Width row
-  GtkWidget *width_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-  gtk_box_append(GTK_BOX(width_box), gtk_label_new("Width:"));
-  GtkWidget *width_entry = my_entry_new_with_initial(width_buffer);
-  gtk_box_append(GTK_BOX(width_box), width_entry);
-  gtk_box_append(GTK_BOX(width_box), gtk_label_new("px"));
-  gtk_box_append(GTK_BOX(vbox), width_box);
+  for (size_t i = 0; i < countof (v); i++)
+    {
+      char buffer[64];
+      g_snprintf (buffer, sizeof (buffer), "%d", v[i]->value);
 
-  // Height row
-  GtkWidget *height_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-  gtk_box_append(GTK_BOX(height_box), gtk_label_new("Height:"));
-  GtkWidget *height_entry = my_entry_new_with_initial(height_buffer);
-  gtk_box_append(GTK_BOX(height_box), height_entry);
-  gtk_box_append(GTK_BOX(height_box), gtk_label_new("px"));
-  gtk_box_append(GTK_BOX(vbox), height_box);
+      // Width row
+      GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+      gtk_box_append(GTK_BOX(box), gtk_label_new(v[i]->label));
+      v[i]->entry = my_entry_new_with_initial(buffer);
+      gtk_box_append(GTK_BOX(box), v[i]->entry);
+      gtk_box_append(GTK_BOX(box), gtk_label_new("px"));
+      gtk_box_append(GTK_BOX(vbox), box);
+    }
 
   // Color Mode section
   GtkWidget *mode_label = gtk_label_new("Color Mode:");
@@ -2279,8 +2288,8 @@ static void on_new_create (GSimpleAction *action, GVariant *parameter, gpointer 
   NewDialogData *d = g_new0(NewDialogData, 1);
   d->state        = state;
   d->dialog       = dialog;
-  d->width_entry  = width_entry;
-  d->height_entry = height_entry;
+  d->width_entry  = w.entry;
+  d->height_entry = h.entry;
   d->mode_rgba    = GTK_TOGGLE_BUTTON(mode_rgba);
   d->mode_gray    = GTK_TOGGLE_BUTTON(mode_gray);
   d->mode_index   = GTK_TOGGLE_BUTTON(mode_index);
