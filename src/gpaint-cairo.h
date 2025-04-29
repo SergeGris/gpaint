@@ -16,8 +16,10 @@ gpaint_cairo_get_color_depth (cairo_surface_t *surface)
   const cairo_format_t format = cairo_image_surface_get_format (surface);
   int color_depth = 0;
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
+#endif
 
   // Handle only supported formats... TODO
   switch (format)
@@ -49,7 +51,9 @@ gpaint_cairo_get_color_depth (cairo_surface_t *surface)
       break;
     }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
   return color_depth;
 }
@@ -60,8 +64,10 @@ gpaint_cairo_get_bytes_per_pixel (cairo_surface_t *surface)
   // TODO undocumanted?
   const cairo_format_t format = cairo_image_surface_get_format (surface);
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
+#endif
 
   // Handle only supported formats... TODO
   switch (format)
@@ -89,7 +95,9 @@ gpaint_cairo_get_bytes_per_pixel (cairo_surface_t *surface)
       abort ();
     }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 
 static inline cairo_t *

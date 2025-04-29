@@ -7,6 +7,7 @@
 #include <cairo.h>
 #include <glib.h>
 
+#if HAVE_FFMPEG
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
@@ -61,7 +62,6 @@ static const struct
 //{ .extensions = { "mp4" },         .codec_id = AV_CODEC_ID_H264, .pix_fmt = AV_PIX_FMT_YUV420P   },
 // TODO mpeg4, hdr, hevc, apng, xbm, jpeg, av1, webp, xpm
 
-#if HAVE_FFMPEG
 extern gboolean save_surfaces_with_ffmpeg (const char *filename, GList *surfaces, enum AVCodecID codec_id, int fps, const char *options_string, GError **error);
 
 // int save_image_with_ffmpeg (const char *filename, cairo_surface_t *surface,
@@ -123,7 +123,10 @@ save_image (const char *path, cairo_surface_t *surface, int fps, GError **error)
     {
     ext++;
     if (g_ascii_strcasecmp (ext, "png") != 0)
+      {
       g_warning ("supported only png format");
+      return FALSE;
+      }
     }
 
   cairo_status_t status = cairo_surface_write_to_png (surface, path);

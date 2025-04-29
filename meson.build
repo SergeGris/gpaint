@@ -5,7 +5,7 @@ project('gpaint', 'c',
 )
 
 # TODO i18n = import('i18n')
-gnome = import('gnome')
+#gnome = import('gnome')
 cc = meson.get_compiler('c')
 
 source_root = meson.current_source_dir()
@@ -141,11 +141,11 @@ endif
 subdir('src')
 # TODO subdir('po')
 
-gnome.post_install(
-     glib_compile_schemas: true,
-    gtk_update_icon_cache: true,
-  update_desktop_database: true,
-)
+#gnome.post_install(
+#     glib_compile_schemas: true,
+#    gtk_update_icon_cache: true,
+#  update_desktop_database: true,
+#)
 
 # TODO
 summary({
