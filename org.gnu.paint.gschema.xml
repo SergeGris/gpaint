@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnu.paint" path="/org/gnu/paint/">
+    <key name="font" type="s">
+      <default>'Monospace 12'</default>
+      <summary>Content font</summary>
+      <description>The font used by the application.</description>
+    </key>
+    <key name="transition" type="s">
+      <default>'none'</default>
+      <summary>Transition animation</summary>
+      <description>Animation for switching views.</description>
+    </key>
+    <key name="dark-theme" type="b">
+      <default>false</default>
+      <summary>Prefer dark theme</summary>
+      <description>Whether to prefer the dark variant of the GTK theme.</description>
+    </key>
+  </schema>
+</schemalist>

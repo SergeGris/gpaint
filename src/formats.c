@@ -33,7 +33,7 @@ save_surfaces_with_ffmpeg (const char *filename,
                            const char *options_string,
                            GError **error)
 {
-  for (size_t i = 0; i < G_N_ELEMENTS (gpaint_formats); i++)
+  for (size_t i = 0; i < countof (gpaint_formats); i++)
     if (codec_id == gpaint_formats[i].codec_id)
       {
         if (!gpaint_formats[i].supports_animation && g_list_length (surfaces) > 1)
@@ -93,7 +93,7 @@ save_surfaces_with_ffmpeg (const char *filename,
 
   /* Determine appropriate pixel format from our gpaint_formats array */
   enum AVPixelFormat pix_fmt = AV_PIX_FMT_NONE;
-  for (size_t i = 0; i < G_N_ELEMENTS (gpaint_formats); i++)
+  for (size_t i = 0; i < countof (gpaint_formats); i++)
     {
       if (codec_id == gpaint_formats[i].codec_id)
         {
@@ -345,14 +345,14 @@ load_image_to_cairo_surface (const char *filename)
   // Read frames
   while (av_read_frame (fmt_ctx, &packet) >= 0)
     {
-      if (packet.stream_index == stream_index)
-        if (avcodec_send_packet (cctx, &packet) == 0)
-          if (avcodec_receive_frame (cctx, frame) == 0)
-            {
-              got_frame = TRUE;
-              av_packet_unref (&packet);
-              break;
-            }
+      if (packet.stream_index == stream_index
+          && avcodec_send_packet (cctx, &packet) == 0
+          && avcodec_receive_frame (cctx, frame) == 0)
+        {
+          got_frame = TRUE;
+          av_packet_unref (&packet);
+          break;
+        }
 
       av_packet_unref (&packet);
     }
@@ -512,7 +512,7 @@ cleanup:
 
 /*   /\* Determine appropriate pixel format from our gpaint_formats array *\/ */
 /*   enum AVPixelFormat pix_fmt = AV_PIX_FMT_NONE; */
-/*   for (size_t i = 0; i < G_N_ELEMENTS (gpaint_formats); i++) */
+/*   for (size_t i = 0; i < countof (gpaint_formats); i++) */
 /*     { */
 /*       if (codec_id == gpaint_formats[i].codec_id) */
 /*         { */
@@ -665,7 +665,7 @@ cleanup:
 /* /\*     } *\/ */
 
 /* /\*   enum AVPixelFormat pix_fmt = AV_PIX_FMT_NONE; *\/ */
-/* /\*   for (size_t i = 0; i < G_N_ELEMENTS (gpaint_formats); i++) *\/ */
+/* /\*   for (size_t i = 0; i < countof (gpaint_formats); i++) *\/ */
 /* /\*     if (codec_id == gpaint_formats[i].codec_id) *\/ */
 /* /\*       { *\/ */
 /* /\*         pix_fmt = gpaint_formats[i].pix_fmt; *\/ */

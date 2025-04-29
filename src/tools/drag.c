@@ -99,9 +99,8 @@ drag_begin (AppState *state)
 static void
 drag_update (AppState *state, gdouble dx, gdouble dy)
 {
-  // TODO...
-  printf("%lf %lf\n", dx, dy); // TODO
-  if ((fabs (dx) + fabs(dy)) < 1.0)
+  // TODO
+  if (fabs (dx) < 0.5 || fabs (dy) < 0.5)
     return;
 
   // TODO

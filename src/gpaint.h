@@ -119,11 +119,11 @@ gpaint_get_current_surface (AppState *state)
 // TODO
 
 #ifndef g_autoptr
-#define g_autoptr(type) type *
+# define g_autoptr(type) type *
 #endif
 
 #ifndef g_autofree
-#define g_autofree
+# define g_autofree
 #endif
 
 // TODO

@@ -7,6 +7,8 @@
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
 
+#include "utils.h"
+
 G_BEGIN_DECLS
 
 typedef enum

@@ -31,6 +31,9 @@ add_project_arguments(['-I' + project_build_root, '-DHAVE_CONFIG_H=1'], language
 add_project_arguments(['-pg'], language: 'c')
 add_project_link_arguments(['-pg'], language: 'c')
 
+add_project_arguments(['-fanalyzer'], language: 'c')
+add_project_link_arguments(['-fanalyzer'], language: 'c')
+
 project_c_args = []
 test_c_args = [
   '-Wcast-align',
